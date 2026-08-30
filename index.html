@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <!-- 手機適配：禁止縮放，鎖定比例 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>英雄元素守塔</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a; --panel-bg: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; --gold: #fbbf24;
+        }
+        body {
+            background-color: var(--bg-dark); color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; 
+            touch-action: none; /* 關閉瀏覽器預設滑動，防止拖曳塔時畫面跟著捲動 */
+            overflow: hidden;
+        }
+        
+        /* 畫面容器：限制在手機比例 */
+        #app {
+            width: 100vw; max-width: 500px; height: 100vh; position: relative;
+            display: flex; flex-direction: column; background-color: var(--bg-dark);
+        }
+
+        /* --- UI 共通 --- */
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; box-sizing: border-box; background-color: var(--bg-dark);
+            z-index: 10;
+        }
+        .hidden { display: none !important; }
+        .btn {
+            background-color: var(--primary); color: white; border: none; padding: 12px; font-size: 16px;
+            font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.1s; text-align: center;
+        }
+        .btn:active { transform: scale(0.95); opacity: 0.8; }
+        .btn:disabled { background-color: #475569; color: #94a3b8; }
+        .btn-danger { background-color: var(--danger); }
+        .btn-success { background-color: var(--success); }
+
+        /* --- 首頁 & 科技樹 UI --- */
+        .header-card {
+            background: var(--panel-bg); padding: 20px; border-radius: 0 0 15px 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            text-align: center; border-bottom: 2px solid #334155;
+        }
+        .level-badge { font-size: 24px; font-weight: bold; color: var(--gold); margin-bottom: 5px; }
+        .exp-bar-bg { background: #334155; height: 10px; border-radius: 5px; overflow: hidden; margin: 10px 0; }
+        .exp-bar-fill { background: var(--success); height: 100%; width: 0%; transition: width 0.3s; }
+        
+        .menu-content { padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        .tech-item {
+            background: var(--panel-bg); padding: 15px; border-radius: 10px; display: flex;
+            justify-content: space-between; align-items: center; border: 1px solid #334155;
+        }
+        .tech-info div { font-size: 14px; margin-top: 5px; color: #94a3b8; }
+
+        /* --- 遊戲內 UI --- */
+        .game-top-bar {
+            background: var(--panel-bg); display: flex; justify-content: space-between; padding: 10px 15px;
+            font-size: 16px; font-weight: bold; z-index: 5;
+        }
+        canvas {
+            width: 100%; flex-grow: 1; background-color: #0f172a; display: block;
+        }
+        
+        .game-bottom-bar {
+            background: var(--panel-bg); padding: 10px; display: flex; flex-direction: column; gap: 10px; z-index: 5;
+        }
+        .info-panel {
+            background: #0b1120; padding: 10px; border-radius: 8px; font-size: 14px; min-height: 42px; border: 1px solid #334155;
+        }
+        .skill-text { color: #38bdf8; font-size: 13px; margin-top: 4px; font-weight: bold; }
+        .controls { display: flex; gap: 10px; }
+        .controls button { flex: 1; }
+
+        /* 結算畫面 */
+        #resultScreen {
+            background: rgba(15, 23, 42, 0.95); justify-content: center; align-items: center; z-index: 20; padding: 20px; text-align: center;
+        }
+        .result-box { background: var(--panel-bg); padding: 30px; border-radius: 15px; width: 100%; box-sizing: border-box; }
+        .result-box h1 { margin: 0 0 20px 0; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- ================= 遊戲首頁 ================= -->
+    <div id="mainMenu" class="screen">
+        <div class="header-card">
+            <div class="level-badge">指揮官 Lv.<span id="uiLevel">1</span></div>
+            <div>全塔基礎素質加成: +<span id="uiLevelBonus">0</span>%</div>
+            <div class="exp-bar-bg"><div class="exp-bar-fill" id="uiExpBar"></div></div>
+            <div style="font-size:12px; color:#94a3b8">經驗值: <span id="uiExp">0</span> / <span id="uiMaxExp">100</span></div>
+            <div style="margin-top:15px; font-size:18px; font-weight:bold; color:var(--gold);">
+                💰 局外金幣: <span id="uiGlobalGold">0</span>
+            </div>
+        </div>
+        <div class="menu-content">
+            <button class="btn btn-success" style="padding: 15px; font-size: 18px;" onclick="startGame('level')">🎮 關卡模式 (經典地圖)</button>
+            <button class="btn btn-success" style="padding: 15px; font-size: 18px;" onclick="startGame('random')">🎲 隨機模式 (變化地形)</button>
+            <hr style="border:1px solid #334155; width:100%; margin: 5px 0;">
+            <h3>🛠️ 科技樹升級</h3>
+            <div class="tech-item">
+                <div class="tech-info">
+                    <strong>⚔️ 傷害強化</strong> (Lv.<span id="techDmgLv">0</span>)<br>
+                    <div>基礎攻擊 +<span id="techDmgVal">0</span>%</div>
+                </div>
+                <button class="btn" id="btnTechDmg" onclick="upgradeTech('dmg')">升級 $<span id="costDmg">50</span></button>
+            </div>
+            <div class="tech-item">
+                <div class="tech-info">
+                    <strong>⏱️ 攻速強化</strong> (Lv.<span id="techSpdLv">0</span>)<br>
+                    <div>冷卻減少 <span id="techSpdVal">0</span>%</div>
+                </div>
+                <button class="btn" id="btnTechSpd" onclick="upgradeTech('spd')">升級 $<span id="costSpd">50</span></button>
+            </div>
+            <div class="tech-item">
+                <div class="tech-info">
+                    <strong>💰 初始資金</strong> (Lv.<span id="techMoneyLv">0</span>)<br>
+                    <div>局內開局 +$<span id="techMoneyVal">0</span></div>
+                </div>
+                <button class="btn" id="btnTechMoney" onclick="upgradeTech('money')">升級 $<span id="costMoney">100</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 遊戲內畫面 ================= -->
+    <div id="gameScreen" class="screen hidden">
+        <div class="game-top-bar">
+            <div>💰 $<span id="gameMoney" style="color:var(--gold)">0</span></div>
+            <div>❤️ <span id="gameLives" style="color:var(--danger)">15</span></div>
+            <div>🏢 <span id="gameTowerCount">0</span>/10</div>
+            <div style="font-size:12px; color:#94a3b8">波數: <span id="gameWave">1</span></div>
+        </div>
+
+        <canvas id="gameCanvas" width="500" height="600"></canvas>
+
+        <div class="game-bottom-bar">
+            <div class="info-panel" id="infoPanel">
+                <div style="color:#94a3b8; text-align:center;">請點擊砲塔查看資訊與技能數值</div>
+            </div>
+            <div class="controls">
+                <button class="btn btn-success" id="summonBtn" onclick="summonTower()">召喚塔 ($30)</button>
+                <button class="btn btn-danger" id="upgradeBtn" disabled onclick="upgradeSelected()">強化 ($20)</button>
+                <button class="btn" id="sellBtn" disabled onclick="sellSelected()">出售</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 結算畫面 ================= -->
+    <div id="resultScreen" class="screen hidden">
+        <div class="result-box">
+            <h1 id="resultTitle">GAME OVER</h1>
+            <p>生存波數： <strong id="resWave">0</strong></p>
+            <p style="color:var(--success)">獲得經驗： +<strong id="resExp">0</strong> EXP</p>
+            <p style="color:var(--gold)">獲得金幣： +<strong id="resGold">0</strong> 💰</p>
+            <br>
+            <button class="btn" style="width:100%" onclick="returnToMenu()">返回首頁</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* =========================================================================
+       系統與存檔管理 (Meta-progression)
+    ========================================================================= */
+    let player = {
+        level: 1, exp: 0, globalGold: 0,
+        tech: { dmgLv: 0, spdLv: 0, moneyLv: 0 }
+    };
+    
+    // 讀取存檔
+    function loadData() {
+        const saved = localStorage.getItem('heroTD_save');
+        if (saved) { player = { ...player, ...JSON.parse(saved) }; }
+        updateMenuUI();
+    }
+    
+    // 儲存進度
+    function saveData() { localStorage.setItem('heroTD_save', JSON.stringify(player)); }
+
+    // 升級所需經驗值公式
+    function getMaxExp() { return 100 + (player.level - 1) * 50; }
+
+    function updateMenuUI() {
+        document.getElementById('uiLevel').innerText = player.level;
+        document.getElementById('uiLevelBonus').innerText = (player.level - 1) * 2; // 每級+2%
+        document.getElementById('uiExp').innerText = player.exp;
+        document.getElementById('uiMaxExp').innerText = getMaxExp();
+        document.getElementById('uiExpBar').style.width = Math.min(100, (player.exp / getMaxExp()) * 100) + '%';
+        document.getElementById('uiGlobalGold').innerText = player.globalGold;
+
+        // 科技樹UI更新
+        const techDmgCost = 50 + player.tech.dmgLv * 30;
+        const techSpdCost = 50 + player.tech.spdLv * 40;
+        const techMoneyCost = 100 + player.tech.moneyLv * 50;
+
+        document.getElementById('techDmgLv').innerText = player.tech.dmgLv;
+        document.getElementById('techDmgVal').innerText = player.tech.dmgLv * 5;
+        document.getElementById('costDmg').innerText = techDmgCost;
+        document.getElementById('btnTechDmg').disabled = player.globalGold < techDmgCost;
+
+        document.getElementById('techSpdLv').innerText = player.tech.spdLv;
+        document.getElementById('techSpdVal').innerText = player.tech.spdLv * 3;
+        document.getElementById('costSpd').innerText = techSpdCost;
+        document.getElementById('btnTechSpd').disabled = player.globalGold < techSpdCost || player.tech.spdLv >= 10; // 攻速有上限
+
+        document.getElementById('techMoneyLv').innerText = player.tech.moneyLv;
+        document.getElementById('techMoneyVal').innerText = player.tech.moneyLv * 20;
+        document.getElementById('costMoney').innerText = techMoneyCost;
+        document.getElementById('btnTechMoney').disabled = player.globalGold < techMoneyCost;
+    }
+
+    function upgradeTech(type) {
+        let cost = 0;
+        if (type === 'dmg') {
+            cost = 50 + player.tech.dmgLv * 30;
+            if (player.globalGold >= cost) { player.globalGold -= cost; player.tech.dmgLv++; }
+        } else if (type === 'spd') {
+            cost = 50 + player.tech.spdLv * 40;
+            if (player.globalGold >= cost && player.tech.spdLv < 10) { player.globalGold -= cost; player.tech.spdLv++; }
+        } else if (type === 'money') {
+            cost = 100 + player.tech.moneyLv * 50;
+            if (player.globalGold >= cost) { player.globalGold -= cost; player.tech.moneyLv++; }
+        }
+        saveData(); updateMenuUI();
+    }
+
+    function addExpAndGold(exp, gold) {
+        player.globalGold += gold;
+        player.exp += exp;
+        while (player.exp >= getMaxExp()) {
+            player.exp -= getMaxExp();
+            player.level++;
+        }
+        saveData();
+    }
+
+    /* =========================================================================
+       遊戲核心引擎 (Game Engine)
+    ========================================================================= */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 內部虛擬解析度 (保證遊戲邏輯一致)
+    const GAME_W = 500; 
+    const GAME_H = 600;
+    const TILE = 50; 
+    const COLS = GAME_W / TILE; // 10格
+    const ROWS = GAME_H / TILE; // 12格 (0~7戰鬥區, 8是分隔, 9~10備戰)
+
+    let gameMode = 'level';
+    let gameState = {
+        money: 0, lives: 15, wave: 1, frame: 0, isOver: false, loopId: null
+    };
+
+    let pathCells = [];
+    let enemies = []; let towers = []; let bullets = []; let visuals = [];
+    
+    let draggedTower = null, selectedTower = null;
+    let dragStartX = 0, dragStartY = 0;
+
+    // 屬性字典
+    const ELEMENTS = {
+        'FIRE':  { color: '#ef4444', name: '火', dmg: 35, cd: 45, range: 120 },
+        'WATER': { color: '#3b82f6', name: '水', dmg: 20, cd: 30, range: 110 },
+        'WIND':  { color: '#22c55e', name: '風', dmg: 15, cd: 25, range: 140 },
+        'ELEC':  { color: '#eab308', name: '電', dmg: 55, cd: 55, range: 110 },
+        'ICE':   { color: '#06b6d4', name: '冰', dmg: 25, cd: 40, range: 100 }
+    };
+    const E_KEYS = Object.keys(ELEMENTS);
+
+    // --- 隨機地圖生成器 ---
+    function generateRandomPath() {
+        let path = [];
+        let curX = 0, curY = Math.floor(Math.random() * 6) + 1; // 1~6
+        path.push({x: curX, y: curY});
+        
+        while (curX < COLS - 1) {
+            let moves = [];
+            // 隨機向右、上、下走，不能超出戰鬥區(y:0~7)，也不能回頭
+            if (curX < COLS - 1) moves.push({x: curX + 1, y: curY});
+            if (curY > 0 && path[path.length-2]?.y !== curY - 1) moves.push({x: curX, y: curY - 1});
+            if (curY < 7 && path[path.length-2]?.y !== curY + 1) moves.push({x: curX, y: curY + 1});
+            
+            // 加重向右走的機率
+            let next = (Math.random() < 0.6 && moves.find(m => m.x > curX)) || moves[Math.floor(Math.random() * moves.length)];
+            path.push(next);
+            curX = next.x; curY = next.y;
+        }
+        return path;
+    }
+
+    // --- 遊戲物件 ---
+    class Enemy {
+        constructor(wave) {
+            this.pathIndex = 0;
+            this.x = pathCells[0].x * TILE + TILE / 2;
+            this.y = pathCells[0].y * TILE + TILE / 2;
+            
+            // 血量隨波數指數成長
+            this.maxHp = 60 + wave * 30 + Math.pow(wave, 1.5) * 5;
+            this.hp = this.maxHp;
+            this.baseSpeed = 1.0 + (wave * 0.03);
+            this.radius = 12;
+            this.reward = 5 + Math.floor(wave / 5);
+            
+            this.slowTimer = 0; 
+            this.slowRatio = 1;
+        }
+
+        update() {
+            let target = pathCells[this.pathIndex + 1];
+            if (!target) { gameState.lives--; updateGameUI(); return false; }
+            
+            let spd = this.baseSpeed;
+            if (this.slowTimer > 0) { spd *= this.slowRatio; this.slowTimer--; }
+
+            let tx = target.x * TILE + TILE/2, ty = target.y * TILE + TILE/2;
+            let dx = tx - this.x, dy = ty - this.y;
+            let dist = Math.hypot(dx, dy);
+
+            if (dist < spd) { this.x = tx; this.y = ty; this.pathIndex++; } 
+            else { this.x += (dx/dist)*spd; this.y += (dy/dist)*spd; }
+            return this.hp > 0;
+        }
+
+        draw() {
+            ctx.fillStyle = this.slowTimer > 0 ? '#7dd3fc' : '#a855f7';
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
+            if (this.slowTimer > 0) { ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 2; ctx.stroke(); }
+            
+            // 血條
+            ctx.fillStyle = '#1e293b'; ctx.fillRect(this.x - 15, this.y - 18, 30, 4);
+            ctx.fillStyle = '#22c55e'; ctx.fillRect(this.x - 15, this.y - 18, 30 * (this.hp / this.maxHp), 4);
+        }
+    }
+
+    class Tower {
+        constructor(gx, gy, isBench) {
+            this.gridX = gx; this.gridY = gy; this.isBench = isBench;
+            this.star = 1; this.upgradeLv = 0; this.timer = 0;
+            this.fireBuff = 1; 
+            let rKey = E_KEYS[Math.floor(Math.random() * E_KEYS.length)];
+            this.type = rKey; this.baseStats = ELEMENTS[rKey];
+            this.updatePosition();
+        }
+
+        updatePosition() { this.x = this.gridX * TILE + TILE/2; this.y = this.gridY * TILE + TILE/2; }
+
+        getDamage() {
+            // 基礎傷害 + 等級加成 + 科技加成
+            let levelMulti = 1 + ((player.level - 1) * 0.02);
+            let techMulti = 1 + (player.tech.dmgLv * 0.05);
+            let base = this.baseStats.dmg * levelMulti * techMulti;
+            // 星級與局內強化
+            let final = base * Math.pow(1.8, this.star - 1) * (1 + this.upgradeLv * 0.5);
+            return final * this.fireBuff; // 火塔加成
+        }
+
+        getCooldown() {
+            let techCdReduc = 1 - (player.tech.spdLv * 0.03); // 最多 30% 減CD
+            return Math.max(10, (this.baseStats.cd - this.star * 2) * techCdReduc);
+        }
+
+        update() {
+            if (this.isBench || this === draggedTower) return;
+            if (this.timer > 0) this.timer--;
+            
+            if (this.timer <= 0) {
+                let tgts = enemies.filter(e => Math.hypot(e.x - this.x, e.y - this.y) <= this.baseStats.range);
+                if (tgts.length > 0) {
+                    let shots = (this.type === 'WIND') ? 1 + this.star : 1;
+                    for (let i = 0; i < Math.min(tgts.length, shots); i++) {
+                        bullets.push(new Bullet(this.x, this.y, tgts[i], this.getDamage(), this.type, this.star));
+                    }
+                    this.timer = this.getCooldown();
+                }
+            }
+        }
+
+        draw(drawX = this.x, drawY = this.y) {
+            ctx.fillStyle = this.isBench ? '#334155' : '#1e293b';
+            ctx.fillRect(drawX - 22, drawY - 22, 44, 44);
+            
+            if (this === selectedTower && !draggedTower) {
+                ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2; ctx.strokeRect(drawX - 24, drawY - 24, 48, 48);
+            }
+            if (this.fireBuff > 1 && !this.isBench) {
+                ctx.beginPath(); ctx.arc(drawX, drawY, 20, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.3)'; ctx.fill();
+            }
+
+            ctx.fillStyle = this.baseStats.color;
+            ctx.beginPath(); ctx.arc(drawX, drawY, 14, 0, Math.PI*2); ctx.fill();
+            
+            ctx.fillStyle = 'white'; ctx.font = '12px sans-serif'; ctx.textAlign='left';
+            ctx.fillText('★'+this.star, drawX - 20, drawY - 10);
+            if (this.upgradeLv > 0) { ctx.fillStyle = '#fbbf24'; ctx.fillText('+'+this.upgradeLv, drawX + 6, drawY - 10); }
+            
+            ctx.fillStyle = 'white'; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText(this.baseStats.name, drawX, drawY + 4);
+        }
+    }
+
+    class Bullet {
+        constructor(x, y, target, damage, type, star) {
+            this.x = x; this.y = y; this.target = target;
+            this.damage = damage; this.type = type; this.star = star;
+            this.color = ELEMENTS[type].color; this.speed = 12;
+        }
+
+        update() {
+            if (this.target.hp <= 0) return false;
+            let dx = this.target.x - this.x, dy = this.target.y - this.y;
+            let dist = Math.hypot(dx, dy);
+            
+            if (dist < this.speed + this.target.radius) {
+                if (this.type === 'ICE') {
+                    this.target.hp -= this.damage;
+                    this.target.slowTimer = 45 + this.star * 15; 
+                    this.target.slowRatio = Math.max(0.15, 0.6 - (this.star * 0.1));
+                } 
+                else if (this.type === 'WATER') {
+                    this.target.hp -= this.damage;
+                    let range = 40 + this.star * 10;
+                    let sDmg = this.damage * (0.4 + this.star * 0.1);
+                    visuals.push({ t: 'splash', x: this.target.x, y: this.target.y, r: 0, maxR: range, life: 15 });
+                    enemies.forEach(e => {
+                        if (e !== this.target && Math.hypot(e.x - this.target.x, e.y - this.target.y) < range) e.hp -= sDmg;
+                    });
+                }
+                else if (this.type === 'ELEC') {
+                    this.target.hp -= this.damage;
+                    let chain = enemies.filter(e => e !== this.target && Math.hypot(e.x - this.target.x, e.y - this.target.y) < 100);
+                    for(let i = 0; i < Math.min(chain.length, 1 + this.star); i++) {
+                        chain[i].hp -= this.damage * 0.8;
+                        visuals.push({ t: 'bolt', x1: this.target.x, y1: this.target.y, x2: chain[i].x, y2: chain[i].y, life: 10 });
+                    }
+                } else { this.target.hp -= this.damage; }
+
+                if (this.target.hp <= 0) { gameState.money += this.target.reward; updateGameUI(); }
+                return false;
+            }
+            this.x += (dx/dist)*this.speed; this.y += (dy/dist)*this.speed;
+            return true;
+        }
+
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.beginPath(); ctx.arc(this.x, this.y, 4, 0, Math.PI*2); ctx.fill();
+        }
+    }
+
+    // --- 遊戲邏輯與UI ---
+    function getBoardCount() { return towers.filter(t => !t.isBench).length; }
+    
+    function updateAuras() {
+        towers.forEach(t => t.fireBuff = 1);
+        towers.forEach(t => {
+            if (t.type === 'FIRE' && !t.isBench) {
+                let buff = 1.3 + (t.star * 0.2); // +50%, +70%...
+                towers.forEach(o => {
+                    if (o !== t && !o.isBench && Math.hypot(o.x - t.x, o.y - t.y) <= t.baseStats.range) o.fireBuff = Math.max(o.fireBuff, buff);
+                });
+            }
+        });
+    }
+
+    function updateGameUI() {
+        document.getElementById('gameMoney').innerText = gameState.money;
+        document.getElementById('gameLives').innerText = gameState.lives;
+        document.getElementById('gameTowerCount').innerText = getBoardCount();
+        document.getElementById('gameWave').innerText = gameState.wave;
+
+        const info = document.getElementById('infoPanel');
+        const upBtn = document.getElementById('upgradeBtn');
+        const selBtn = document.getElementById('sellBtn');
+
+        if (selectedTower) {
+            let t = selectedTower;
+            let d = Math.floor(t.getDamage());
+            let sell = 15 * Math.pow(2, t.star - 1) + t.upgradeLv * 10;
+            
+            // 動態產生專屬技能說明文字
+            let skillDesc = "";
+            if(t.type === 'FIRE') skillDesc = `自身周圍光環: 增傷 +${Math.round((1.3 + t.star*0.2 - 1)*100)}%`;
+            if(t.type === 'WATER') skillDesc = `擊中爆炸: 半徑 ${40 + t.star*10} | 擴散傷害 ${Math.round((0.4 + t.star*0.1)*100)}%`;
+            if(t.type === 'WIND') skillDesc = `射速極快 | 多重鎖定: 同時攻擊 ${1 + t.star} 個目標`;
+            if(t.type === 'ELEC') skillDesc = `高壓電擊 | 連鎖彈跳: 波及 ${1 + t.star} 個目標`;
+            if(t.type === 'ICE') skillDesc = `極寒冰凍: 減速至 ${Math.round((Math.max(0.15, 0.6 - t.star*0.1))*100)}%`;
+
+            info.innerHTML = `
+                <div style="display:flex; justify-content:space-between; color:${t.baseStats.color}; font-weight:bold;">
+                    <span>${t.baseStats.name}塔 ★${t.star} (+${t.upgradeLv})</span>
+                    <span>攻擊: ${d} | 範圍: ${t.baseStats.range}</span>
+                </div>
+                <div class="skill-text">✨ 技能：${skillDesc}</div>
+            `;
+            upBtn.disabled = gameState.money < 20;
+            selBtn.disabled = false; selBtn.innerText = `出售 ($${sell})`;
+        } else {
+            info.innerHTML = `<div style="color:#94a3b8; text-align:center; padding-top:10px;">請點擊砲塔查看資訊與技能數值</div>`;
+            upBtn.disabled = true; selBtn.disabled = true; selBtn.innerText = `出售`;
+        }
+
+        if (gameState.lives <= 0 && !gameState.isOver) endGame();
+    }
+
+    // --- 玩家操作 (支援滑鼠與觸控) ---
+    function getEventCoords(e) {
+        let rect = canvas.getBoundingClientRect();
+        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        // 計算實際縮放比例
+        let scaleX = GAME_W / rect.width;
+        let scaleY = GAME_H / rect.height;
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+        };
+    }
+
+    function handleStart(e) {
+        if(gameState.isOver) return;
+        let pos = getEventCoords(e);
+        let gx = Math.floor(pos.x / TILE), gy = Math.floor(pos.y / TILE);
+        
+        let t = towers.find(t => t.gridX === gx && t.gridY === gy);
+        if (t) {
+            draggedTower = t; dragStartX = gx; dragStartY = gy;
+        } else {
+            selectedTower = null; updateGameUI();
+        }
+    }
+
+    function handleMove(e) {
+        if (draggedTower) {
+            let pos = getEventCoords(e);
+            mouseX = pos.x; mouseY = pos.y;
+        }
+    }
+
+    function handleEnd(e) {
+        if (!draggedTower) return;
+        let pos = e.changedTouches ? getEventCoords(e.changedTouches[0]) : getEventCoords(e);
+        let dropX = Math.floor(pos.x / TILE), dropY = Math.floor(pos.y / TILE);
+        
+        let isClick = (dropX === dragStartX && dropY === dragStartY);
+        let inBoard = dropY >= 0 && dropY <= 7;
+        let inBench = dropY === 10 || dropY === 11; // 兩排備戰區
+        
+        let targetT = towers.find(t => t.gridX === dropX && t.gridY === dropY && t !== draggedTower);
+        let onPath = pathCells.some(c => c.x === dropX && c.y === dropY);
+
+        if (isClick) {
+            selectedTower = draggedTower;
+        } else {
+            if (targetT) {
+                if (targetT.star === draggedTower.star) {
+                    targetT.star++;
+                    targetT.upgradeLv = Math.floor((targetT.upgradeLv + draggedTower.upgradeLv) / 2);
+                    towers = towers.filter(t => t !== draggedTower);
+                    if (selectedTower === draggedTower) selectedTower = targetT;
+                } else {
+                    let tx = targetT.gridX, ty = targetT.gridY, tb = targetT.isBench;
+                    targetT.gridX = draggedTower.gridX; targetT.gridY = draggedTower.gridY; targetT.isBench = draggedTower.isBench;
+                    draggedTower.gridX = tx; draggedTower.gridY = ty; draggedTower.isBench = tb;
+                    targetT.updatePosition(); draggedTower.updatePosition();
+                    selectedTower = draggedTower;
+                }
+            } else if (inBoard && !onPath) {
+                if (draggedTower.isBench && getBoardCount() >= 10) draggedTower.updatePosition();
+                else {
+                    draggedTower.gridX = dropX; draggedTower.gridY = dropY; draggedTower.isBench = false;
+                    draggedTower.updatePosition(); selectedTower = draggedTower;
+                }
+            } else if (inBench) {
+                draggedTower.gridX = dropX; draggedTower.gridY = dropY; draggedTower.isBench = true;
+                draggedTower.updatePosition(); selectedTower = draggedTower;
+            } else {
+                draggedTower.updatePosition();
+            }
+        }
+        draggedTower = null; updateAuras(); updateGameUI();
+    }
+
+    // 綁定事件
+    canvas.addEventListener('mousedown', handleStart);
+    canvas.addEventListener('mousemove', handleMove);
+    canvas.addEventListener('mouseup', handleEnd);
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e); }, {passive: false});
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); }, {passive: false});
+    canvas.addEventListener('touchend', (e) => { e.preventDefault(); handleEnd(e); }, {passive: false});
+
+    // 按鈕行為
+    function summonTower() {
+        if (gameState.money >= 30) {
+            let empty = null;
+            for (let y = 10; y <= 11; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (!towers.find(t => t.gridX === x && t.gridY === y)) { empty = {x, y}; break; }
+                }
+                if(empty) break;
+            }
+            if (empty) {
+                gameState.money -= 30;
+                towers.push(new Tower(empty.x, empty.y, true));
+                updateGameUI();
+            } else alert("備戰區已滿！");
+        }
+    }
+
+    function upgradeSelected() {
+        if (selectedTower && gameState.money >= 20) {
+            gameState.money -= 20; selectedTower.upgradeLv++; updateGameUI();
+        }
+    }
+
+    function sellSelected() {
+        if (selectedTower) {
+            gameState.money += 15 * Math.pow(2, selectedTower.star - 1) + selectedTower.upgradeLv * 10;
+            towers = towers.filter(t => t !== selectedTower);
+            selectedTower = null; updateAuras(); updateGameUI();
+        }
+    }
+
+    // --- 繪製與迴圈 ---
+    function drawGrid() {
+        // 背景
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, GAME_W, GAME_H);
+        // 路徑
+        ctx.fillStyle = '#334155';
+        for (let c of pathCells) ctx.fillRect(c.x * TILE, c.y * TILE, TILE, TILE);
+        
+        // 分界區 (Y=8, 9)
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 8*TILE, GAME_W, 2*TILE);
+        ctx.fillStyle = '#94a3b8'; ctx.font = '16px sans-serif'; ctx.textAlign='center';
+        ctx.fillText("備戰區 (拖曳合成同星級)", GAME_W/2, 8*TILE + 45);
+        
+        // 備戰區網格 (Y=10, 11)
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 10*TILE, GAME_W, 2*TILE);
+        ctx.strokeStyle = '#334155'; ctx.lineWidth = 1;
+        for(let y=10; y<=11; y++) {
+            for(let x=0; x<COLS; x++) ctx.strokeRect(x*TILE, y*TILE, TILE, TILE);
+        }
+    }
+
+    function loop() {
+        if(gameState.isOver) return;
+
+        ctx.clearRect(0, 0, GAME_W, GAME_H);
+        drawGrid(); updateAuras();
+
+        gameState.frame++;
+        
+        // 波數與生怪控制 (難度漸增)
+        if (gameState.frame % 600 === 0) {
+            gameState.wave++; updateGameUI();
+        }
+        
+        let spawnInt = Math.max(25, 120 - gameState.wave * 5);
+        if (gameState.frame % spawnInt === 0) {
+            enemies.push(new Enemy(gameState.wave));
+        }
+
+        enemies = enemies.filter(e => {
+            let alive = e.update(); if (alive) e.draw(); return alive && e.hp > 0;
+        });
+
+        // 選取範圍繪製 (放塔底下)
+        if (selectedTower && !draggedTower) {
+            ctx.beginPath(); ctx.arc(selectedTower.x, selectedTower.y, selectedTower.baseStats.range, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)'; ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.stroke();
+        }
+
+        towers.forEach(t => { if (t !== draggedTower) { t.update(); t.draw(); } });
+        bullets = bullets.filter(b => { let a = b.update(); if(a) b.draw(); return a; });
+
+        visuals = visuals.filter(v => {
+            if (v.t === 'splash') {
+                v.r += (v.maxR - v.r) * 0.3;
+                ctx.beginPath(); ctx.arc(v.x, v.y, v.r, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(59, 130, 246, ${v.life/15*0.5})`; ctx.fill();
+            } else if (v.t === 'bolt') {
+                ctx.beginPath(); ctx.moveTo(v.x1, v.y1); ctx.lineTo(v.x2, v.y2);
+                ctx.strokeStyle = `rgba(234, 179, 8, ${v.life/10})`; ctx.lineWidth = 3; ctx.stroke();
+            }
+            v.life--; return v.life > 0;
+        });
+
+        if (draggedTower) {
+            if (mouseY < 8*TILE) { 
+                ctx.beginPath(); ctx.arc(mouseX, mouseY, draggedTower.baseStats.range, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.stroke();
+            }
+            draggedTower.draw(mouseX, mouseY);
+        }
+
+        gameState.loopId = requestAnimationFrame(loop);
+    }
+
+    /* =========================================================================
+       流程控制 (開始與結束)
+    ========================================================================= */
+    function startGame(mode) {
+        gameMode = mode;
+        document.getElementById('mainMenu').classList.add('hidden');
+        document.getElementById('gameScreen').classList.remove('hidden');
+        
+        // 根據科技樹給予初始資金
+        let startMoney = 250 + (player.tech.moneyLv * 20);
+        
+        // 重置狀態
+        gameState = { money: startMoney, lives: 15, wave: 1, frame: 0, isOver: false, loopId: null };
+        enemies = []; towers = []; bullets = []; visuals = [];
+        draggedTower = null; selectedTower = null;
+
+        if (mode === 'level') {
+            // 經典S型地圖
+            pathCells = [
+                {x:0,y:1},{x:1,y:1},{x:2,y:1},{x:3,y:1},{x:4,y:1},{x:5,y:1},{x:6,y:1},{x:7,y:1},{x:8,y:1},
+                {x:8,y:2},{x:8,y:3},{x:8,y:4},
+                {x:7,y:4},{x:6,y:4},{x:5,y:4},{x:4,y:4},{x:3,y:4},{x:2,y:4},{x:1,y:4},
+                {x:1,y:5},{x:1,y:6},{x:1,y:7},{x:2,y:7},{x:3,y:7},{x:4,y:7},{x:5,y:7},{x:6,y:7},{x:7,y:7},{x:8,y:7},{x:9,y:7}
+            ];
+        } else {
+            pathCells = generateRandomPath();
+        }
+
+        updateGameUI();
+        gameState.loopId = requestAnimationFrame(loop);
+    }
+
+    function endGame() {
+        gameState.isOver = true;
+        cancelAnimationFrame(gameState.loopId);
+        
+        // 結算獎勵公式：波數越高，指數成長
+        let earnedExp = gameState.wave * 15 + Math.floor(Math.pow(gameState.wave, 1.2));
+        let earnedGold = gameState.wave * 10 + Math.floor(Math.pow(gameState.wave, 1.3));
+        
+        document.getElementById('resWave').innerText = gameState.wave;
+        document.getElementById('resExp').innerText = earnedExp;
+        document.getElementById('resGold').innerText = earnedGold;
+        
+        addExpAndGold(earnedExp, earnedGold);
+        
+        setTimeout(() => {
+            document.getElementById('resultScreen').classList.remove('hidden');
+        }, 500);
+    }
+
+    function returnToMenu() {
+        document.getElementById('resultScreen').classList.add('hidden');
+        document.getElementById('gameScreen').classList.add('hidden');
+        document.getElementById('mainMenu').classList.remove('hidden');
+        updateMenuUI();
+    }
+
+    // 初始化
+    loadData();
+
+</script>
+</body>
+</html>
