@@ -2,87 +2,88 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <!-- 嚴格鎖定手機視角，禁止任何原生的縮放與滑動 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>英雄元素守塔 - 複雜地圖版</title>
+    <title>英雄元素守塔 - 終極改版</title>
     <style>
         :root {
             --bg-dark: #0f172a; --panel-bg: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; --gold: #fbbf24;
         }
-        /* 改用 100% 取代 100vh，徹底解決 Chrome 底部跑版問題 */
+        /* 徹底禁止網頁全選、複製、長按彈出選單 */
+        * {
+            user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
+            -webkit-touch-callout: none; box-sizing: border-box;
+        }
         html, body {
-            height: 100%; margin: 0; padding: 0; 
-            background-color: var(--bg-dark); color: #fff; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden; touch-action: none;
+            height: 100%; margin: 0; padding: 0; background-color: var(--bg-dark); color: #fff; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; touch-action: none;
         }
-        
         #app {
-            width: 100%; max-width: 500px; height: 100%; margin: 0 auto;
-            position: relative; display: flex; flex-direction: column;
+            width: 100%; max-width: 600px; height: 100%; margin: 0 auto;
+            position: relative; display: flex; flex-direction: column; background: var(--bg-dark);
         }
-
         .screen {
-            position: absolute; inset: 0;
-            display: flex; flex-direction: column; 
+            position: absolute; inset: 0; display: flex; flex-direction: column; 
             background-color: var(--bg-dark); z-index: 10;
         }
         .hidden { display: none !important; }
         
         .btn {
-            background-color: var(--primary); color: white; border: none; padding: 12px; font-size: 16px;
+            background-color: var(--primary); color: white; border: none; padding: 10px; font-size: 15px;
             font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.1s; text-align: center;
         }
         .btn:active { transform: scale(0.95); opacity: 0.8; }
         .btn:disabled { background-color: #475569; color: #94a3b8; }
         .btn-danger { background-color: var(--danger); }
         .btn-success { background-color: var(--success); }
+        .btn-gold { background-color: #d97706; }
 
-        /* 首頁樣式 */
+        /* 首頁 */
         .header-card {
-            background: var(--panel-bg); padding: 20px; border-radius: 0 0 15px 15px; 
+            background: var(--panel-bg); padding: 15px; border-radius: 0 0 15px 15px; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; border-bottom: 2px solid #334155;
         }
         .level-badge { font-size: 24px; font-weight: bold; color: var(--gold); margin-bottom: 5px; }
         .exp-bar-bg { background: #334155; height: 10px; border-radius: 5px; overflow: hidden; margin: 10px 0; }
         .exp-bar-fill { background: var(--success); height: 100%; width: 0%; transition: width 0.3s; }
-        .menu-content { padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex-grow: 1; }
-        .tech-item {
-            background: var(--panel-bg); padding: 15px; border-radius: 10px; display: flex;
-            justify-content: space-between; align-items: center; border: 1px solid #334155;
-        }
-        .tech-info div { font-size: 14px; margin-top: 5px; color: #94a3b8; }
-
-        /* 遊戲內排版 (絕對不會跑版) */
+        .menu-content { padding: 15px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex-grow: 1; }
+        
+        /* 遊戲內頂部狀態欄 */
         .game-top-bar {
             flex-shrink: 0; background: var(--panel-bg); display: flex; justify-content: space-between; 
-            padding: 10px 15px; font-size: 16px; font-weight: bold; z-index: 5;
+            align-items: center; padding: 8px 12px; font-size: 15px; font-weight: bold; z-index: 5;
         }
+        .game-sub-bar {
+            flex-shrink: 0; background: #0b1120; display: flex; justify-content: space-between; 
+            padding: 6px 12px; border-bottom: 2px solid #1e293b; z-index: 5;
+        }
+        
+        /* 遊戲畫布容器 (最大化填滿) */
         .canvas-container {
             flex-grow: 1; display: flex; justify-content: center; align-items: center; 
-            overflow: hidden; background-color: #0b1120;
+            overflow: hidden; background-color: #000;
         }
         canvas {
-            max-width: 100%; max-height: 100%; object-fit: contain; cursor: pointer;
+            width: 100%; height: 100%; object-fit: contain; cursor: pointer;
         }
+        
+        /* 遊戲內底部控制面板 */
         .game-bottom-bar {
             flex-shrink: 0; background: var(--panel-bg); padding: 10px; display: flex; 
-            flex-direction: column; gap: 10px; z-index: 5;
+            flex-direction: column; gap: 8px; z-index: 5;
         }
         .info-panel {
-            background: #0f172a; padding: 10px; border-radius: 8px; font-size: 14px; 
-            min-height: 48px; border: 1px solid #334155; box-sizing: border-box;
+            background: #0f172a; padding: 8px; border-radius: 8px; font-size: 14px; 
+            min-height: 40px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;
         }
-        .skill-text { color: #38bdf8; font-size: 13px; margin-top: 4px; font-weight: bold; }
-        .controls { display: flex; gap: 10px; }
-        .controls button { flex: 1; }
+        .controls-grid {
+            display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 8px;
+        }
 
         #resultScreen {
             background: rgba(15, 23, 42, 0.95); justify-content: center; align-items: center; 
             z-index: 20; padding: 20px; text-align: center;
         }
         .result-box { background: var(--panel-bg); padding: 30px; border-radius: 15px; width: 100%; }
-        .result-box h1 { margin: 0 0 20px 0; }
     </style>
 </head>
 <body>
@@ -95,59 +96,58 @@
             <div>全塔基礎素質加成: +<span id="uiLevelBonus">0</span>%</div>
             <div class="exp-bar-bg"><div class="exp-bar-fill" id="uiExpBar"></div></div>
             <div style="font-size:12px; color:#94a3b8">經驗值: <span id="uiExp">0</span> / <span id="uiMaxExp">100</span></div>
-            <div style="margin-top:15px; font-size:18px; font-weight:bold; color:var(--gold);">💰 局外金幣: <span id="uiGlobalGold">0</span></div>
+            <div style="margin-top:10px; font-size:18px; font-weight:bold; color:var(--gold);">💰 局外金幣: <span id="uiGlobalGold">0</span></div>
         </div>
         <div class="menu-content">
-            <button class="btn btn-success" style="padding: 15px; font-size: 18px;" onclick="startGame('level')">🎮 關卡模式 (經典連續彎道)</button>
-            <button class="btn btn-success" style="padding: 15px; font-size: 18px;" onclick="startGame('random')">🎲 隨機模式 (高難度迷宮)</button>
-            <hr style="border:1px solid #334155; width:100%; margin: 5px 0;">
+            <div style="font-size:13px; color:#38bdf8; background:#0f172a; padding:10px; border-radius:8px;">
+                ⚔️ <strong>屬性克制</strong> (對 BOSS 造成 200% 傷害)：<br>
+                💧水 ＞ 🔥火 ＞ 🌪️風 ＞ ⚡電 ＞ ❄️冰 ＞ 💧水
+            </div>
+            <button class="btn btn-success" style="padding: 15px; font-size: 16px;" onclick="startGame('level')">🎮 關卡模式 (回字地圖 / 50波破關)</button>
+            <button class="btn btn-gold" style="padding: 15px; font-size: 16px;" onclick="startGame('random')">🎲 隨機模式 (隨機地圖 / 無盡挑戰)</button>
+            <hr style="border:1px solid #334155; width:100%; margin: 2px 0;">
             <h3 style="margin:0;">🛠️ 科技樹升級</h3>
-            <div class="tech-item">
-                <div class="tech-info">
-                    <strong>⚔️ 傷害強化</strong> (Lv.<span id="techDmgLv">0</span>)<br>
-                    <div>基礎攻擊 +<span id="techDmgVal">0</span>%</div>
-                </div>
-                <button class="btn" id="btnTechDmg" onclick="upgradeTech('dmg')">升級 $<span id="costDmg">50</span></button>
-            </div>
-            <div class="tech-item">
-                <div class="tech-info">
-                    <strong>⏱️ 攻速強化</strong> (Lv.<span id="techSpdLv">0</span>)<br>
-                    <div>冷卻減少 <span id="techSpdVal">0</span>%</div>
-                </div>
-                <button class="btn" id="btnTechSpd" onclick="upgradeTech('spd')">升級 $<span id="costSpd">50</span></button>
-            </div>
-            <div class="tech-item">
-                <div class="tech-info">
-                    <strong>💰 初始資金</strong> (Lv.<span id="techMoneyLv">0</span>)<br>
-                    <div>局內開局 +$<span id="techMoneyVal">0</span></div>
-                </div>
-                <button class="btn" id="btnTechMoney" onclick="upgradeTech('money')">升級 $<span id="costMoney">100</span></button>
-            </div>
+            <!-- 科技樹項目省略詳情以節省版面，邏輯同前 -->
+            <button class="btn" id="btnTechDmg" onclick="upgradeTech('dmg')">⚔️ 傷害 +<span id="techDmgVal">0</span>% (Lv.<span id="techDmgLv">0</span>) | $<span id="costDmg">0</span></button>
+            <button class="btn" id="btnTechSpd" onclick="upgradeTech('spd')">⏱️ 攻速 +<span id="techSpdVal">0</span>% (Lv.<span id="techSpdLv">0</span>) | $<span id="costSpd">0</span></button>
+            <button class="btn" id="btnTechMoney" onclick="upgradeTech('money')">💰 初始 +$<span id="techMoneyVal">0</span> (Lv.<span id="techMoneyLv">0</span>) | $<span id="costMoney">0</span></button>
         </div>
     </div>
 
     <!-- 遊戲中畫面 -->
     <div id="gameScreen" class="screen hidden">
+        <!-- 頂部資訊 -->
         <div class="game-top-bar">
             <div>💰 $<span id="gameMoney" style="color:var(--gold)">0</span></div>
-            <div>❤️ <span id="gameLives" style="color:var(--danger)">15</span></div>
+            <div>場上怪物: <span id="gameMonsterCount" style="color:var(--success)">0 / 30</span></div>
+            <div>波數: <span id="gameWave">1</span><span id="maxWaveText">/50</span></div>
+        </div>
+        <!-- 系統操作列 -->
+        <div class="game-sub-bar">
             <div>🏢 <span id="gameTowerCount">0</span>/15</div>
-            <div style="font-size:12px; color:#94a3b8">波數:<span id="gameWave">1</span></div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn" id="pauseBtn" onclick="togglePause()" style="padding:4px 10px; font-size:13px;">⏸️ 暫停</button>
+                <button class="btn btn-danger" onclick="leaveGame()" style="padding:4px 10px; font-size:13px;">🏃 離開</button>
+            </div>
         </div>
 
+        <!-- 畫布：自動適應最大化 -->
         <div class="canvas-container">
-            <!-- 解析度放大至 12x17 格 -->
-            <canvas id="gameCanvas" width="480" height="680"></canvas>
+            <!-- 內部解析度 960x1280 (12*80 x 16*80) -->
+            <canvas id="gameCanvas" width="960" height="1280"></canvas>
         </div>
 
+        <!-- 底部控制 -->
         <div class="game-bottom-bar">
             <div class="info-panel" id="infoPanel">
-                <div style="color:#94a3b8; text-align:center; padding-top:4px;">請點擊砲塔查看資訊與技能數值</div>
+                <span style="color:#94a3b8;">選擇塔以查看資訊或出售</span>
+                <button class="btn btn-danger" id="sellBtn" disabled onclick="sellSelected()" style="padding:6px 15px; display:none;">出售</button>
             </div>
-            <div class="controls">
-                <button class="btn btn-success" id="summonBtn" onclick="summonTower()">召喚塔 ($30)</button>
-                <button class="btn btn-danger" id="upgradeBtn" disabled onclick="upgradeSelected()">強化 ($20)</button>
-                <button class="btn" id="sellBtn" disabled onclick="sellSelected()">出售</button>
+            <!-- 長按強化列 -->
+            <div class="controls-grid">
+                <button class="btn btn-success" id="btnSummon" onclick="summonTower()">召喚 ($30)</button>
+                <button class="btn" id="btnUpgDmg">⚔️全域傷害<br>Lv.<span id="uiUpgDmgLv">0</span> ($<span id="uiUpgDmgCost">20</span>)</button>
+                <button class="btn btn-gold" id="btnUpgSummon">✨高星機率<br>Lv.<span id="uiUpgSummonLv">0</span> ($<span id="uiUpgSummonCost">50</span>)</button>
             </div>
         </div>
     </div>
@@ -166,10 +166,10 @@
 </div>
 
 <script>
-    /* 存檔系統 */
+    /* ================= 存檔與首頁 ================= */
     let player = { level: 1, exp: 0, globalGold: 0, tech: { dmgLv: 0, spdLv: 0, moneyLv: 0 }};
-    function loadData() { const s = localStorage.getItem('heroTD_v2'); if(s) player = {...player, ...JSON.parse(s)}; updateMenuUI(); }
-    function saveData() { localStorage.setItem('heroTD_v2', JSON.stringify(player)); }
+    function loadData() { const s = localStorage.getItem('heroTD_v3'); if(s) player = {...player, ...JSON.parse(s)}; updateMenuUI(); }
+    function saveData() { localStorage.setItem('heroTD_v3', JSON.stringify(player)); }
     function getMaxExp() { return 100 + (player.level - 1) * 50; }
 
     function updateMenuUI() {
@@ -183,10 +183,8 @@
         const cDmg = 50 + player.tech.dmgLv * 30, cSpd = 50 + player.tech.spdLv * 40, cMon = 100 + player.tech.moneyLv * 50;
         document.getElementById('techDmgLv').innerText = player.tech.dmgLv; document.getElementById('techDmgVal').innerText = player.tech.dmgLv * 5;
         document.getElementById('costDmg').innerText = cDmg; document.getElementById('btnTechDmg').disabled = player.globalGold < cDmg;
-
         document.getElementById('techSpdLv').innerText = player.tech.spdLv; document.getElementById('techSpdVal').innerText = player.tech.spdLv * 3;
         document.getElementById('costSpd').innerText = cSpd; document.getElementById('btnTechSpd').disabled = player.globalGold < cSpd || player.tech.spdLv >= 10;
-
         document.getElementById('techMoneyLv').innerText = player.tech.moneyLv; document.getElementById('techMoneyVal').innerText = player.tech.moneyLv * 20;
         document.getElementById('costMoney').innerText = cMon; document.getElementById('btnTechMoney').disabled = player.globalGold < cMon;
     }
@@ -199,80 +197,93 @@
         saveData(); updateMenuUI();
     }
 
-    /* 遊戲引擎 */
+    /* ================= 遊戲核心引擎 ================= */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    // 全新大型地圖參數 (480x680 -> 12欄 x 17列)
-    const GAME_W = 480, GAME_H = 680, TILE = 40, COLS = 12, ROWS = 17;
+    // 放大版內部解析度
+    const GAME_W = 960, GAME_H = 1280, TILE = 80, COLS = 12, ROWS = 16;
     const MAX_TOWERS = 15;
-
-    let gameState = { money: 0, lives: 15, wave: 1, frame: 0, isOver: false, loopId: null };
+    
+    let gameMode = 'level';
+    let gameState = { money: 0, wave: 1, frame: 0, isOver: false, isPaused: false, loopId: null, globalDmgLv: 0, summonLv: 0, bossSpawned: false };
     let pathCells = [], enemies = [], towers = [], bullets = [], visuals = [];
     let draggedTower = null, selectedTower = null;
     let dragStartX = 0, dragStartY = 0, mouseX = 0, mouseY = 0;
 
     const ELEMENTS = {
-        'FIRE':  { color: '#ef4444', name: '火', dmg: 35, cd: 45, range: 110 },
-        'WATER': { color: '#3b82f6', name: '水', dmg: 20, cd: 30, range: 100 },
-        'WIND':  { color: '#22c55e', name: '風', dmg: 15, cd: 25, range: 130 },
-        'ELEC':  { color: '#eab308', name: '電', dmg: 55, cd: 55, range: 100 },
-        'ICE':   { color: '#06b6d4', name: '冰', dmg: 25, cd: 40, range: 90 }
+        'FIRE':  { color: '#ef4444', name: '火', dmg: 35, cd: 45, range: 200 },
+        'WATER': { color: '#3b82f6', name: '水', dmg: 20, cd: 30, range: 180 },
+        'WIND':  { color: '#22c55e', name: '風', dmg: 15, cd: 25, range: 240 },
+        'ELEC':  { color: '#eab308', name: '電', dmg: 55, cd: 55, range: 180 },
+        'ICE':   { color: '#06b6d4', name: '冰', dmg: 25, cd: 40, range: 160 }
     };
     const E_KEYS = Object.keys(ELEMENTS);
-
-    // 複雜路線產生器 (根據轉折點自動鋪路)
-    function buildPath(points) {
-        let p = [];
-        for(let i=0; i<points.length-1; i++) {
-            let p1 = points[i], p2 = points[i+1];
-            let dx = Math.sign(p2.x - p1.x), dy = Math.sign(p2.y - p1.y);
-            let cx = p1.x, cy = p1.y;
-            while(cx !== p2.x || cy !== p2.y) {
-                p.push({x: cx, y: cy});
-                cx += dx; cy += dy;
-            }
-        }
-        p.push(points[points.length-1]);
-        return p;
-    }
+    const COUNTERS = { 'WATER': 'FIRE', 'FIRE': 'WIND', 'WIND': 'ELEC', 'ELEC': 'ICE', 'ICE': 'WATER' };
 
     class Enemy {
-        constructor(wave) {
-            this.pathIndex = 0;
+        constructor(wave, isBoss = false) {
+            this.pathIndex = 0; this.isBoss = isBoss;
             this.x = pathCells[0].x * TILE + TILE/2; this.y = pathCells[0].y * TILE + TILE/2;
-            this.maxHp = 60 + wave * 35 + Math.pow(wave, 1.6) * 5; this.hp = this.maxHp;
-            this.baseSpeed = 1.0 + (wave * 0.02); // 速度成長調慢，配合長地圖
-            this.radius = 12; this.reward = 5 + Math.floor(wave / 5);
             this.slowTimer = 0; this.slowRatio = 1;
+            
+            if (isBoss) {
+                // 每10波BOSS屬性輪迴
+                const bossTypes = ['FIRE', 'WATER', 'WIND', 'ELEC', 'ICE'];
+                this.bossType = bossTypes[((wave / 10) - 1) % 5];
+                this.maxHp = 800 + wave * 300 + Math.pow(wave, 2.2) * 10;
+                this.hp = this.maxHp;
+                this.baseSpeed = 0.6 + (wave * 0.01);
+                this.radius = 26; this.reward = 100;
+                this.color = ELEMENTS[this.bossType].color;
+            } else {
+                this.maxHp = 60 + wave * 40 + Math.pow(wave, 1.7) * 5;
+                this.hp = this.maxHp;
+                this.baseSpeed = 1.2 + (wave * 0.02);
+                this.radius = 16; this.reward = 5 + Math.floor(wave / 5);
+                this.color = '#a855f7';
+            }
         }
         update() {
-            let tg = pathCells[this.pathIndex + 1];
-            if (!tg) { gameState.lives--; updateGameUI(); return false; }
+            // 無盡迴圈邏輯
+            let nextIndex = (this.pathIndex + 1) % pathCells.length;
+            let tg = pathCells[nextIndex];
+            
+            // 若為隨機模式 (起點跟終點沒接在一起)，強制瞬間移動回起點
+            if (gameMode === 'random' && nextIndex === 0 && Math.hypot(tg.x*TILE+TILE/2 - this.x, tg.y*TILE+TILE/2 - this.y) > TILE * 2) {
+                this.x = tg.x * TILE + TILE/2; this.y = tg.y * TILE + TILE/2;
+            }
+
             let spd = this.slowTimer > 0 ? this.baseSpeed * this.slowRatio : this.baseSpeed;
             if(this.slowTimer > 0) this.slowTimer--;
 
             let tx = tg.x * TILE + TILE/2, ty = tg.y * TILE + TILE/2;
-            let dx = tx - this.x, dy = ty - this.y;
-            let dist = Math.hypot(dx, dy);
+            let dx = tx - this.x, dy = ty - this.y, dist = Math.hypot(dx, dy);
 
-            if (dist < spd) { this.x = tx; this.y = ty; this.pathIndex++; } 
+            if (dist < spd) { this.x = tx; this.y = ty; this.pathIndex = nextIndex; } 
             else { this.x += (dx/dist)*spd; this.y += (dy/dist)*spd; }
             return this.hp > 0;
         }
         draw() {
-            ctx.fillStyle = this.slowTimer > 0 ? '#7dd3fc' : '#a855f7';
+            ctx.fillStyle = this.slowTimer > 0 ? '#7dd3fc' : this.color;
             ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
-            if(this.slowTimer > 0) { ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 2; ctx.stroke(); }
-            ctx.fillStyle = '#1e293b'; ctx.fillRect(this.x-15, this.y-18, 30, 4);
-            ctx.fillStyle = '#22c55e'; ctx.fillRect(this.x-15, this.y-18, 30*(this.hp/this.maxHp), 4);
+            if(this.slowTimer > 0) { ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 4; ctx.stroke(); }
+            if(this.isBoss) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); }
+            
+            ctx.fillStyle = '#1e293b'; ctx.fillRect(this.x-20, this.y-25, 40, 6);
+            ctx.fillStyle = this.isBoss ? '#ef4444' : '#22c55e'; ctx.fillRect(this.x-20, this.y-25, 40*(this.hp/this.maxHp), 6);
+            
+            if(this.isBoss) {
+                ctx.fillStyle = '#fff'; ctx.font = '14px Arial'; ctx.textAlign='center';
+                ctx.fillText("BOSS", this.x, this.y + 6);
+            }
         }
     }
 
     class Tower {
         constructor(gx, gy, isBench) {
             this.gridX = gx; this.gridY = gy; this.isBench = isBench;
-            this.star = 1; this.upgradeLv = 0; this.timer = 0; this.fireBuff = 1; 
+            this.star = 1; this.timer = 0; this.fireBuff = 1; 
             let k = E_KEYS[Math.floor(Math.random() * E_KEYS.length)];
             this.type = k; this.baseStats = ELEMENTS[k];
             this.updatePosition();
@@ -280,7 +291,8 @@
         updatePosition() { this.x = this.gridX * TILE + TILE/2; this.y = this.gridY * TILE + TILE/2; }
         getDamage() {
             let lvM = 1 + ((player.level - 1) * 0.02), tcM = 1 + (player.tech.dmgLv * 0.05);
-            return this.baseStats.dmg * lvM * tcM * Math.pow(1.8, this.star - 1) * (1 + this.upgradeLv * 0.5) * this.fireBuff;
+            let globalM = 1 + (gameState.globalDmgLv * 0.05); // 全面強化增益
+            return this.baseStats.dmg * lvM * tcM * globalM * Math.pow(1.8, this.star - 1) * this.fireBuff;
         }
         getCooldown() { return Math.max(10, (this.baseStats.cd - this.star * 2) * (1 - player.tech.spdLv * 0.03)); }
         update() {
@@ -298,46 +310,52 @@
             }
         }
         draw(dx = this.x, dy = this.y) {
-            ctx.fillStyle = this.isBench ? '#334155' : '#1e293b';
-            ctx.fillRect(dx-18, dy-18, 36, 36);
-            if (this === selectedTower && !draggedTower) { ctx.strokeStyle='#fbbf24'; ctx.lineWidth=2; ctx.strokeRect(dx-20, dy-20, 40, 40); }
-            if (this.fireBuff > 1 && !this.isBench) { ctx.beginPath(); ctx.arc(dx, dy, 18, 0, Math.PI*2); ctx.fillStyle='rgba(239, 68, 68, 0.3)'; ctx.fill(); }
+            ctx.fillStyle = this.isBench ? '#334155' : '#1e293b'; ctx.fillRect(dx-30, dy-30, 60, 60);
+            if (this === selectedTower && !draggedTower) { ctx.strokeStyle='#fbbf24'; ctx.lineWidth=3; ctx.strokeRect(dx-32, dy-32, 64, 64); }
+            if (this.fireBuff > 1 && !this.isBench) { ctx.beginPath(); ctx.arc(dx, dy, 30, 0, Math.PI*2); ctx.fillStyle='rgba(239, 68, 68, 0.3)'; ctx.fill(); }
             
-            ctx.fillStyle = this.baseStats.color; ctx.beginPath(); ctx.arc(dx, dy, 12, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = 'white'; ctx.font = '11px sans-serif'; ctx.textAlign='left'; ctx.fillText('★'+this.star, dx-18, dy-8);
-            if (this.upgradeLv>0) { ctx.fillStyle='#fbbf24'; ctx.fillText('+'+this.upgradeLv, dx+4, dy-8); }
-            ctx.fillStyle = 'white'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(this.baseStats.name, dx, dy+4);
+            ctx.fillStyle = this.baseStats.color; ctx.beginPath(); ctx.arc(dx, dy, 20, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = 'white'; ctx.font = '16px sans-serif'; ctx.textAlign='left'; ctx.fillText('★'+this.star, dx-28, dy-12);
+            ctx.fillStyle = 'white'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(this.baseStats.name, dx, dy+6);
         }
     }
 
     class Bullet {
         constructor(x, y, tg, dmg, t, s) {
             this.x=x; this.y=y; this.target=tg; this.damage=dmg; this.type=t; this.star=s;
-            this.color = ELEMENTS[t].color; this.speed = 12;
+            this.color = ELEMENTS[t].color; this.speed = 18;
         }
         update() {
             if(this.target.hp <= 0) return false;
             let dx = this.target.x-this.x, dy = this.target.y-this.y, dist = Math.hypot(dx, dy);
             if(dist < this.speed + this.target.radius) {
+                // 屬性克制計算
+                let finalDmg = this.damage;
+                if (this.target.isBoss && COUNTERS[this.type] === this.target.bossType) {
+                    finalDmg *= 2.0;
+                    visuals.push({ t:'text', text:'克制!', x: this.target.x, y: this.target.y - 30, life: 30, color: '#fbbf24' });
+                }
+
                 if(this.type === 'ICE') {
-                    this.target.hp -= this.damage; this.target.slowTimer = 45 + this.star * 15; 
+                    this.target.hp -= finalDmg; this.target.slowTimer = 45 + this.star * 15; 
                     this.target.slowRatio = Math.max(0.15, 0.6 - (this.star * 0.1));
                 } else if(this.type === 'WATER') {
-                    this.target.hp -= this.damage; let r = 40 + this.star*10, sd = this.damage*(0.4+this.star*0.1);
+                    this.target.hp -= finalDmg; let r = 60 + this.star*15, sd = finalDmg*(0.4+this.star*0.1);
                     visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:r, life:15 });
                     enemies.forEach(e => { if(e!==this.target && Math.hypot(e.x-this.target.x, e.y-this.target.y)<r) e.hp -= sd; });
                 } else if(this.type === 'ELEC') {
-                    this.target.hp -= this.damage; let ch = enemies.filter(e => e!==this.target && Math.hypot(e.x-this.target.x, e.y-this.target.y)<100);
+                    this.target.hp -= finalDmg; let ch = enemies.filter(e => e!==this.target && Math.hypot(e.x-this.target.x, e.y-this.target.y)<150);
                     for(let i=0; i<Math.min(ch.length, 1+this.star); i++) {
-                        ch[i].hp -= this.damage*0.8; visuals.push({ t:'bolt', x1:this.target.x, y1:this.target.y, x2:ch[i].x, y2:ch[i].y, life:10 });
+                        ch[i].hp -= finalDmg*0.8; visuals.push({ t:'bolt', x1:this.target.x, y1:this.target.y, x2:ch[i].x, y2:ch[i].y, life:10 });
                     }
-                } else { this.target.hp -= this.damage; }
+                } else { this.target.hp -= finalDmg; }
+                
                 if(this.target.hp <= 0) { gameState.money += this.target.reward; updateGameUI(); }
                 return false;
             }
             this.x += (dx/dist)*this.speed; this.y += (dy/dist)*this.speed; return true;
         }
-        draw() { ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(this.x, this.y, 4, 0, Math.PI*2); ctx.fill(); }
+        draw() { ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill(); }
     }
 
     function updateAuras() {
@@ -354,70 +372,111 @@
 
     function updateGameUI() {
         document.getElementById('gameMoney').innerText = gameState.money;
-        document.getElementById('gameLives').innerText = gameState.lives;
+        
+        let mCount = enemies.length;
+        document.getElementById('gameMonsterCount').innerText = `${mCount} / 30`;
+        document.getElementById('gameMonsterCount').style.color = mCount >= 20 ? 'var(--danger)' : 'var(--success)';
+        
         document.getElementById('gameTowerCount').innerText = towers.filter(t => !t.isBench).length;
         document.getElementById('gameWave').innerText = gameState.wave;
 
-        const info = document.getElementById('infoPanel'), up = document.getElementById('upgradeBtn'), sel = document.getElementById('sellBtn');
-        if (selectedTower) {
-            let t = selectedTower, d = Math.floor(t.getDamage()), sP = 15*Math.pow(2, t.star-1) + t.upgradeLv*10;
-            let desc = "";
-            if(t.type==='FIRE') desc=`光環增傷 +${Math.round((1.3+t.star*0.2-1)*100)}%`;
-            if(t.type==='WATER') desc=`水花半徑 ${40+t.star*10} | 擴散 ${Math.round((0.4+t.star*0.1)*100)}%`;
-            if(t.type==='WIND') desc=`多重鎖定: 同時攻擊 ${1+t.star} 個目標`;
-            if(t.type==='ELEC') desc=`連鎖閃電: 彈跳 ${1+t.star} 個目標`;
-            if(t.type==='ICE') desc=`極寒冰凍: 減速至 ${Math.round((Math.max(0.15, 0.6-t.star*0.1))*100)}%`;
+        document.getElementById('uiUpgDmgLv').innerText = gameState.globalDmgLv;
+        document.getElementById('uiUpgDmgCost').innerText = 20 + gameState.globalDmgLv * 10;
+        document.getElementById('uiUpgSummonLv').innerText = gameState.summonLv;
+        document.getElementById('uiUpgSummonCost').innerText = 50 + gameState.summonLv * 20;
 
-            info.innerHTML = `<div style="display:flex; justify-content:space-between; color:${t.baseStats.color}; font-weight:bold;">
-                <span>${t.baseStats.name}塔 ★${t.star} (+${t.upgradeLv})</span><span>攻擊: ${d} | 範圍: ${t.baseStats.range}</span></div>
-                <div class="skill-text">✨ 技能：${desc}</div>`;
-            up.disabled = gameState.money < 20; sel.disabled = false; sel.innerText = `出售 ($${sP})`;
+        const info = document.getElementById('infoPanel'), sel = document.getElementById('sellBtn');
+        if (selectedTower) {
+            let t = selectedTower, d = Math.floor(t.getDamage()), sP = 15*Math.pow(2, t.star-1);
+            info.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span style="color:${t.baseStats.color}; font-weight:bold;">${t.baseStats.name}塔 ★${t.star} | 攻擊: ${d}</span>
+                </div>
+            `;
+            sel.style.display = 'block'; sel.innerText = `出售($${sP})`; sel.disabled = false;
         } else {
-            info.innerHTML = `<div style="color:#94a3b8; text-align:center; padding-top:4px;">請點擊砲塔查看資訊與技能數值</div>`;
-            up.disabled = true; sel.disabled = true; sel.innerText = `出售`;
+            info.innerHTML = `<span style="color:#94a3b8;">選擇塔以查看資訊或出售</span>`;
+            sel.style.display = 'none'; sel.disabled = true;
         }
-        if (gameState.lives <= 0 && !gameState.isOver) endGame();
     }
 
-    /* 滑鼠與觸控安全防呆系統 (解決 LINE Browser 崩潰問題) */
+    /* 長按強化綁定系統 */
+    function bindLongPress(id, actionFunc) {
+        let el = document.getElementById(id);
+        let timer = null, interval = null, isPressing = false;
+        const start = (e) => {
+            if(e.cancelable) e.preventDefault();
+            if(isPressing || el.disabled) return;
+            isPressing = true; actionFunc();
+            timer = setTimeout(() => { interval = setInterval(actionFunc, 100); }, 300);
+        };
+        const stop = (e) => {
+            if(e && e.cancelable) e.preventDefault();
+            isPressing = false; clearTimeout(timer); clearInterval(interval);
+        };
+        el.addEventListener('mousedown', start); el.addEventListener('touchstart', start, {passive: false});
+        el.addEventListener('mouseup', stop); el.addEventListener('mouseleave', stop);
+        el.addEventListener('touchend', stop); el.addEventListener('touchcancel', stop);
+    }
+
+    bindLongPress('btnUpgDmg', () => {
+        let cost = 20 + gameState.globalDmgLv * 10;
+        if (gameState.money >= cost) { gameState.money -= cost; gameState.globalDmgLv++; updateGameUI(); }
+    });
+    bindLongPress('btnUpgSummon', () => {
+        let cost = 50 + gameState.summonLv * 20;
+        if (gameState.money >= cost) { gameState.money -= cost; gameState.summonLv++; updateGameUI(); }
+    });
+
+    function summonTower() {
+        if(gameState.money >= 30) {
+            let empty = null;
+            // 備戰區 Y=14,15 X=1~10
+            for(let y=14; y<=15; y++){ for(let x=1; x<=10; x++){ if(!towers.find(t=>t.gridX===x && t.gridY===y)) { empty={x,y}; break; } } if(empty) break; }
+            if(empty) {
+                gameState.money-=30; 
+                let rand = Math.random() * 100;
+                let s3 = gameState.summonLv * 0.5, s2 = gameState.summonLv * 1.5, star = 1;
+                if (rand < s3) star = 3; else if (rand < s3 + s2) star = 2;
+                let t = new Tower(empty.x, empty.y, true);
+                t.star = star; towers.push(t); updateGameUI();
+            } else alert("備戰區已滿！");
+        }
+    }
+    
+    function sellSelected() {
+        if(selectedTower){ gameState.money += 15*Math.pow(2, selectedTower.star-1); towers = towers.filter(t=>t!==selectedTower); selectedTower=null; updateAuras(); updateGameUI(); }
+    }
+
+    /* 拖曳互動 */
     function getEventCoords(e) {
         let rect = canvas.getBoundingClientRect();
         let cx = e.clientX, cy = e.clientY;
-        // 嚴格解析觸控陣列
-        if (e.changedTouches && e.changedTouches.length > 0) {
-            cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY;
-        } else if (e.touches && e.touches.length > 0) {
-            cx = e.touches[0].clientX; cy = e.touches[0].clientY;
-        }
+        if (e.changedTouches && e.changedTouches.length > 0) { cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY; } 
+        else if (e.touches && e.touches.length > 0) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
         return { x: (cx - rect.left) * (GAME_W / rect.width), y: (cy - rect.top) * (GAME_H / rect.height) };
     }
 
     function handleStart(e) {
         try {
-            if(gameState.isOver) return;
+            if(gameState.isOver || gameState.isPaused) return;
             let pos = getEventCoords(e);
             let gx = Math.floor(pos.x / TILE), gy = Math.floor(pos.y / TILE);
             let t = towers.find(t => t.gridX === gx && t.gridY === gy);
             if(t) { draggedTower = t; dragStartX = gx; dragStartY = gy; } else { selectedTower = null; updateGameUI(); }
         } catch(err) { console.error(err); }
     }
-
-    function handleMove(e) {
-        try { if(draggedTower) { let pos = getEventCoords(e); mouseX = pos.x; mouseY = pos.y; } } catch(err){}
-    }
-
+    function handleMove(e) { try { if(draggedTower) { let pos = getEventCoords(e); mouseX = pos.x; mouseY = pos.y; } } catch(err){} }
     function handleEnd(e) {
         try {
             if(!draggedTower) return;
             let pos = getEventCoords(e);
             let dropX = Math.floor(pos.x / TILE), dropY = Math.floor(pos.y / TILE);
-            
-            // 座標超出畫布的防呆
-            if(isNaN(dropX) || isNaN(dropY)) { draggedTower.updatePosition(); draggedTower = null; updateGameUI(); return; }
+            if(isNaN(dropX) || isNaN(dropY)) { draggedTower.updatePosition(); draggedTower = null; return; }
 
             let isClick = (dropX === dragStartX && dropY === dragStartY);
-            let inBoard = dropY >= 0 && dropY <= 12; // 0~12是戰鬥區
-            let inBench = dropY >= 14 && dropY <= 15; // 14~15是備戰區
+            let inBoard = dropY >= 0 && dropY <= 12;
+            let inBench = dropY >= 14 && dropY <= 15;
             let targetT = towers.find(t => t.gridX === dropX && t.gridY === dropY && t !== draggedTower);
             let onPath = pathCells.some(c => c.x === dropX && c.y === dropY);
 
@@ -425,8 +484,7 @@
             else {
                 if(targetT) {
                     if(targetT.star === draggedTower.star) {
-                        targetT.star++; targetT.upgradeLv = Math.floor((targetT.upgradeLv+draggedTower.upgradeLv)/2);
-                        towers = towers.filter(t => t !== draggedTower);
+                        targetT.star++; towers = towers.filter(t => t !== draggedTower);
                         if(selectedTower === draggedTower) selectedTower = targetT;
                     } else {
                         let tx = targetT.gridX, ty = targetT.gridY, tb = targetT.isBench;
@@ -441,74 +499,72 @@
                     draggedTower.gridX = dropX; draggedTower.gridY = dropY; draggedTower.isBench = true; draggedTower.updatePosition(); selectedTower = draggedTower;
                 } else { draggedTower.updatePosition(); }
             }
-        } catch(err) { console.error(err); if(draggedTower) draggedTower.updatePosition(); }
-        finally { draggedTower = null; updateAuras(); updateGameUI(); }
+        } catch(err) {} finally { draggedTower = null; updateAuras(); updateGameUI(); }
     }
 
-    canvas.addEventListener('mousedown', handleStart);
-    canvas.addEventListener('mousemove', handleMove);
-    canvas.addEventListener('mouseup', handleEnd);
+    canvas.addEventListener('mousedown', handleStart); canvas.addEventListener('mousemove', handleMove); canvas.addEventListener('mouseup', handleEnd);
     canvas.addEventListener('touchstart', (e)=>{ e.preventDefault(); handleStart(e); }, {passive:false});
     canvas.addEventListener('touchmove', (e)=>{ e.preventDefault(); handleMove(e); }, {passive:false});
     canvas.addEventListener('touchend', (e)=>{ e.preventDefault(); handleEnd(e); }, {passive:false});
 
-    function summonTower() {
-        if(gameState.money >= 30) {
-            let empty = null;
-            // 備戰區置中 10 格 (x:1~10)
-            for(let y=14; y<=15; y++){ for(let x=1; x<=10; x++){ if(!towers.find(t=>t.gridX===x && t.gridY===y)) { empty={x,y}; break; } } if(empty) break; }
-            if(empty) { gameState.money-=30; towers.push(new Tower(empty.x, empty.y, true)); updateGameUI(); } 
-            else alert("備戰區已滿！");
-        }
-    }
-    function upgradeSelected() { if(selectedTower && gameState.money>=20){ gameState.money-=20; selectedTower.upgradeLv++; updateGameUI(); } }
-    function sellSelected() {
-        if(selectedTower){ gameState.money += 15*Math.pow(2, selectedTower.star-1)+selectedTower.upgradeLv*10; towers = towers.filter(t=>t!==selectedTower); selectedTower=null; updateAuras(); updateGameUI(); }
-    }
-
+    /* 遊戲迴圈與繪圖 */
     function drawGrid() {
         ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, GAME_W, GAME_H);
         
-        // 戰鬥區網格暗線
         ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
-        for(let i=0; i<GAME_W; i+=TILE) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 13*TILE); ctx.stroke(); }
+        for(let i=0; i<=GAME_W; i+=TILE) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 13*TILE); ctx.stroke(); }
         for(let j=0; j<=13*TILE; j+=TILE) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(GAME_W, j); ctx.stroke(); }
 
-        // 怪獸路線
         ctx.fillStyle = '#334155'; for(let c of pathCells) ctx.fillRect(c.x*TILE, c.y*TILE, TILE, TILE);
         
-        // 分界線 Y=13
         ctx.fillStyle = '#0b1120'; ctx.fillRect(0, 13*TILE, GAME_W, TILE);
-        ctx.fillStyle = '#94a3b8'; ctx.font = '15px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText("⬇️ 備戰區 (拖曳合成同星級) ⬇️", GAME_W/2, 13*TILE + TILE/2);
+        ctx.fillStyle = '#94a3b8'; ctx.font = '20px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText("⬇️ 備戰區 (拖曳合成) ⬇️", GAME_W/2, 13*TILE + TILE/2);
         
-        // 備戰區外框
         ctx.strokeStyle = '#334155'; ctx.lineWidth = 2;
         for(let y=14; y<=15; y++) { for(let x=1; x<=10; x++) ctx.strokeRect(x*TILE, y*TILE, TILE, TILE); }
     }
 
     function loop() {
-        if(gameState.isOver) return;
+        if(gameState.isOver || gameState.isPaused) return;
         ctx.clearRect(0, 0, GAME_W, GAME_H); drawGrid(); updateAuras();
         gameState.frame++;
         
-        if (gameState.frame % 600 === 0) { gameState.wave++; updateGameUI(); }
-        let spInt = Math.max(30, 150 - gameState.wave * 5); // 生成間隔拉長適應大圖
-        if (gameState.frame % spInt === 0) enemies.push(new Enemy(gameState.wave));
+        // 波數控制 (每 600 幀 = 1波)
+        if (gameState.frame % 600 === 0 && (gameMode !== 'level' || gameState.wave < 50)) { 
+            gameState.wave++; gameState.bossSpawned = false; updateGameUI(); 
+        }
+
+        // BOSS 與小怪生成
+        if (gameState.wave % 10 === 0) {
+            if (!gameState.bossSpawned) { enemies.push(new Enemy(gameState.wave, true)); gameState.bossSpawned = true; }
+        } else {
+            let spInt = Math.max(25, 120 - gameState.wave * 3);
+            if (gameState.frame % spInt === 0) enemies.push(new Enemy(gameState.wave, false));
+        }
         
         enemies = enemies.filter(e => { let a = e.update(); if(a) e.draw(); return a && e.hp>0; });
 
+        // 滿 30 隻敗北
+        if (enemies.length >= 30) { return endGame(false); }
+
+        // 關卡模式勝利判定
+        if (gameMode === 'level' && gameState.wave >= 50 && gameState.bossSpawned && enemies.length === 0) {
+            return endGame(true);
+        }
+
+        // 畫範圍與物件
         if (selectedTower && !draggedTower) {
             ctx.beginPath(); ctx.arc(selectedTower.x, selectedTower.y, selectedTower.baseStats.range, 0, Math.PI*2);
             ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.stroke();
         }
-
         towers.forEach(t => { if(t !== draggedTower) { t.update(); t.draw(); } });
         bullets = bullets.filter(b => { let a = b.update(); if(a) b.draw(); return a; });
 
         visuals = visuals.filter(v => {
             if(v.t === 'splash') { v.r += (v.maxR-v.r)*0.3; ctx.beginPath(); ctx.arc(v.x, v.y, v.r, 0, Math.PI*2); ctx.fillStyle=`rgba(59,130,246,${v.life/15*0.5})`; ctx.fill(); }
             else if(v.t === 'bolt') { ctx.beginPath(); ctx.moveTo(v.x1, v.y1); ctx.lineTo(v.x2, v.y2); ctx.strokeStyle=`rgba(234,179,8,${v.life/10})`; ctx.lineWidth=3; ctx.stroke(); }
+            else if(v.t === 'text') { ctx.fillStyle = v.color; ctx.globalAlpha = v.life/30; ctx.font = 'bold 24px Arial'; ctx.textAlign='center'; ctx.fillText(v.text, v.x, v.y - (30-v.life)); ctx.globalAlpha=1.0; }
             v.life--; return v.life>0;
         });
 
@@ -522,29 +578,61 @@
         gameState.loopId = requestAnimationFrame(loop);
     }
 
+    /* 暫停與離開 */
+    function togglePause() {
+        gameState.isPaused = !gameState.isPaused;
+        document.getElementById('pauseBtn').innerText = gameState.isPaused ? '▶️ 繼續' : '⏸️ 暫停';
+        if (!gameState.isPaused) requestAnimationFrame(loop);
+    }
+    function leaveGame() {
+        if(confirm("確定要離開結算嗎？(關卡模式視為失敗)")) { endGame(false); }
+    }
+
+    /* 控制流程 */
+    function buildLoopPath() {
+        let p = [];
+        for(let x=1; x<=10; x++) p.push({x, y:1});
+        for(let y=2; y<=11; y++) p.push({x:10, y});
+        for(let x=9; x>=1; x--) p.push({x, y:11});
+        for(let y=10; y>=2; y--) p.push({x:1, y});
+        return p;
+    }
+    
+    // 簡單隨機路徑 (起點到終點)
+    function buildRandomPath() {
+        let p = []; let cx = 0, cy = Math.floor(Math.random()*4)+1; p.push({x:cx, y:cy});
+        while(cx < 11) {
+            let moves = [];
+            if(cx<11) moves.push({x:cx+1, y:cy});
+            if(cy>0 && p[p.length-2]?.y !== cy-1) moves.push({x:cx, y:cy-1});
+            if(cy<12 && p[p.length-2]?.y !== cy+1) moves.push({x:cx, y:cy+1});
+            let n = (Math.random()<0.6 && moves.find(m=>m.x>cx)) || moves[Math.floor(Math.random()*moves.length)];
+            p.push(n); cx=n.x; cy=n.y;
+        }
+        return p;
+    }
+
     function startGame(mode) {
         document.getElementById('mainMenu').classList.add('hidden'); document.getElementById('gameScreen').classList.remove('hidden');
-        gameState = { money: 250 + (player.tech.moneyLv*20), lives: 15, wave: 1, frame: 0, isOver: false, loopId: null };
+        gameMode = mode;
+        gameState = { money: 250 + (player.tech.moneyLv*20), wave: 1, frame: 0, isOver: false, isPaused: false, loopId: null, globalDmgLv: 0, summonLv: 0, bossSpawned: false };
         enemies = []; towers = []; bullets = []; visuals = []; draggedTower = null; selectedTower = null;
-
-        // 地圖庫 (座標陣列)
-        const MAP_CLASSIC = [{x:0,y:1},{x:10,y:1},{x:10,y:4},{x:1,y:4},{x:1,y:7},{x:10,y:7},{x:10,y:10},{x:1,y:10},{x:1,y:12},{x:11,y:12}];
-        const MAP_R1 = [{x:0,y:0},{x:11,y:0},{x:11,y:11},{x:1,y:11},{x:1,y:3},{x:9,y:3},{x:9,y:9},{x:3,y:9},{x:3,y:5},{x:7,y:5},{x:7,y:7},{x:5,y:7}]; // 螺旋
-        const MAP_R2 = [{x:1,y:0},{x:1,y:10},{x:4,y:10},{x:4,y:2},{x:7,y:2},{x:7,y:12},{x:10,y:12},{x:10,y:6},{x:11,y:6}]; // 垂直閃電
-        const MAP_R3 = [{x:0,y:12},{x:2,y:12},{x:2,y:9},{x:5,y:9},{x:5,y:6},{x:8,y:6},{x:8,y:3},{x:11,y:3},{x:11,y:0}]; // 階梯
-
-        if (mode === 'level') pathCells = buildPath(MAP_CLASSIC);
-        else {
-            let pools = [MAP_R1, MAP_R2, MAP_R3];
-            pathCells = buildPath(pools[Math.floor(Math.random() * pools.length)]);
-        }
+        
+        document.getElementById('maxWaveText').innerText = mode === 'level' ? '/50' : ' (無盡)';
+        pathCells = mode === 'level' ? buildLoopPath() : buildRandomPath();
+        
         updateGameUI(); gameState.loopId = requestAnimationFrame(loop);
     }
 
-    function endGame() {
+    function endGame(isWin) {
         gameState.isOver = true; cancelAnimationFrame(gameState.loopId);
+        
+        let title = isWin ? "🎉 防守成功 🎉" : "💀 任務失敗 💀";
         let eExp = gameState.wave * 15 + Math.floor(Math.pow(gameState.wave, 1.2)), eGold = gameState.wave * 10 + Math.floor(Math.pow(gameState.wave, 1.3));
+        
+        document.getElementById('resultTitle').innerText = title; document.getElementById('resultTitle').style.color = isWin ? "var(--success)" : "var(--danger)";
         document.getElementById('resWave').innerText = gameState.wave; document.getElementById('resExp').innerText = eExp; document.getElementById('resGold').innerText = eGold;
+        
         player.globalGold += eGold; player.exp += eExp;
         while(player.exp >= getMaxExp()) { player.exp -= getMaxExp(); player.level++; }
         saveData(); setTimeout(() => { document.getElementById('resultScreen').classList.remove('hidden'); }, 500);
