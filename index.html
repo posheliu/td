@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>英雄元素守塔 - 煉金紀元</title>
+    <title>英雄元素守塔 - 煉金紀元 (完美修復版)</title>
     <style>
         :root {
             --bg-dark: #0f172a; --panel-bg: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; --gold: #fbbf24;
@@ -67,7 +67,6 @@
         }
         canvas { width: 100%; height: 100%; object-fit: contain; cursor: pointer; }
         
-        /* 【關鍵修復】：強制鎖定底部高度，解決因技能敘述過長導致畫面縮小的問題 */
         .game-bottom-bar {
             flex-shrink: 0; height: 185px; background: var(--panel-bg); padding: 10px; 
             display: flex; flex-direction: column; gap: 8px; z-index: 5; box-sizing: border-box;
@@ -120,7 +119,7 @@
             <h2 style="text-align:center; margin:0;">🗺️ 選擇關卡</h2>
             <p style="text-align:center; color:#94a3b8; font-size:14px; margin:0;">(每關皆為 50 波極限防禦)</p>
             <div class="level-grid" id="levelGridUI"></div>
-            <button class="btn btn-danger" style="margin-top:20px; padding:12px;" onclick="hideLevelSelect()">🔙 返回</button>
+            <button class="btn btn-danger" style="margin-top:20px; padding:12px;" onclick="hideLevelSelect()">🔙 返回主選單</button>
         </div>
     </div>
 
@@ -171,8 +170,8 @@
 <script>
     /* ================= 存檔與 UI ================= */
     let player = { level: 1, exp: 0, globalGold: 0, maxLevel: 1, tech: { dmgLv: 0, spdLv: 0, moneyLv: 0 }};
-    function loadData() { const s = localStorage.getItem('heroTD_v8'); if(s) player = {...player, ...JSON.parse(s)}; updateMenuUI(); }
-    function saveData() { localStorage.setItem('heroTD_v8', JSON.stringify(player)); }
+    function loadData() { const s = localStorage.getItem('heroTD_v9'); if(s) player = {...player, ...JSON.parse(s)}; updateMenuUI(); }
+    function saveData() { localStorage.setItem('heroTD_v9', JSON.stringify(player)); }
     function getMaxExp() { return 100 + (player.level - 1) * 50; }
 
     function updateMenuUI() {
@@ -224,16 +223,16 @@
         'ELEC':  { color: '#eab308', name: '電', dmg: 55, cd: 55, range: 220, isBase: true },
         'ICE':   { color: '#06b6d4', name: '冰', dmg: 25, cd: 40, range: 200, isBase: true },
         
-        'STEAM': { color: '#9ca3af', name: '蒸氣', dmg: 25, cd: 25, range: 260, isBase: false }, // 水+火
-        'SLUSH': { color: '#7dd3fc', name: '碎冰', dmg: 30, cd: 40, range: 240, isBase: false }, // 水+冰
-        'STORM': { color: '#1d4ed8', name: '暴雨', dmg: 40, cd: 35, range: 260, isBase: false }, // 水+風
-        'CONDU': { color: '#a855f7', name: '導電', dmg: 45, cd: 45, range: 250, isBase: false }, // 水+雷
-        'THERM': { color: '#f97316', name: '熱震', dmg: 70, cd: 55, range: 230, isBase: false }, // 火+冰
-        'FSTORM':{ color: '#ea580c', name: '火捲', dmg: 35, cd: 30, range: 280, isBase: false }, // 火+風
-        'PLASM': { color: '#d946ef', name: '電漿', dmg: 110, cd: 60, range: 240, isBase: false },// 火+雷
-        'BLIZZ': { color: '#e0f2fe', name: '風雪', dmg: 25, cd: 35, range: 300, isBase: false }, // 冰+風
-        'SUPER': { color: '#c084fc', name: '超導', dmg: 60, cd: 50, range: 280, isBase: false }, // 冰+雷
-        'TSTORM':{ color: '#84cc16', name: '雷暴', dmg: 40, cd: 20, range: 250, isBase: false }  // 風+雷
+        'STEAM': { color: '#9ca3af', name: '蒸氣', dmg: 25, cd: 25, range: 260, isBase: false }, 
+        'SLUSH': { color: '#7dd3fc', name: '碎冰', dmg: 30, cd: 40, range: 240, isBase: false }, 
+        'STORM': { color: '#1d4ed8', name: '暴雨', dmg: 40, cd: 35, range: 260, isBase: false }, 
+        'CONDU': { color: '#a855f7', name: '導電', dmg: 45, cd: 45, range: 250, isBase: false }, 
+        'THERM': { color: '#f97316', name: '熱震', dmg: 70, cd: 55, range: 230, isBase: false }, 
+        'FSTORM':{ color: '#ea580c', name: '火捲', dmg: 35, cd: 30, range: 280, isBase: false }, 
+        'PLASM': { color: '#d946ef', name: '電漿', dmg: 110, cd: 60, range: 240, isBase: false },
+        'BLIZZ': { color: '#e0f2fe', name: '風雪', dmg: 25, cd: 35, range: 300, isBase: false }, 
+        'SUPER': { color: '#c084fc', name: '超導', dmg: 60, cd: 50, range: 280, isBase: false }, 
+        'TSTORM':{ color: '#84cc16', name: '雷暴', dmg: 40, cd: 20, range: 250, isBase: false }  
     };
     const BASE_KEYS = ['FIRE', 'WATER', 'WIND', 'ELEC', 'ICE'];
     const COUNTERS = { 'WATER': 'FIRE', 'FIRE': 'WIND', 'WIND': 'ELEC', 'ELEC': 'ICE', 'ICE': 'WATER' };
@@ -246,17 +245,18 @@
         'ICE,ELEC': 'SUPER', 'ELEC,ICE': 'SUPER', 'WIND,ELEC': 'TSTORM', 'ELEC,WIND': 'TSTORM'
     };
 
-    /* ================= 全局核心引擎 (永不卡死) ================= */
+    /* ================= 全局核心引擎 ================= */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const GAME_W = 800, GAME_H = 1200, TILE = 100, COLS = 8, ROWS = 12;
+    const MAX_TOWERS = 20; 
     
+    let gameRunId = 0;
     let gameState = { isActive: false, money: 0, wave: 1, frame: 0, isOver: false, isPaused: false, globalDmgLv: 0, summonLv: 0, bossSpawned: false, mode: 1 };
     let pathCells = [], enemies = [], towers = [], bullets = [], visuals = [];
     let draggedTower = null, selectedTower = null;
     let dragStartX = 0, dragStartY = 0, mouseX = 0, mouseY = 0;
 
-    // 【關鍵修復】: 單一永續守護迴圈，絕不產生 Zombie Loop
     requestAnimationFrame(globalGameLoop);
     
     function globalGameLoop() {
@@ -281,7 +281,6 @@
             
             enemies = enemies.filter(e => { let a = e.update(); if(a) e.draw(); return a && e.hp>0; });
 
-            // 即時同步怪物空間 (BOSS=10)
             let mCount = enemies.reduce((sum, e) => sum + (e.isBoss ? 10 : 1), 0);
             let countEl = document.getElementById('gameMonsterCount');
             countEl.innerText = `${mCount} / 30`;
@@ -312,7 +311,7 @@
                 draggedTower.draw(mouseX, mouseY);
             }
         } catch (err) {
-            console.error("Game Loop Recovered from Error: ", err); // 防禦性報錯，絕不卡死
+            console.error(err); 
         }
     }
 
@@ -411,7 +410,7 @@
                         bullets.push(new Bullet(this.x, this.y, tgts[i], this.getDamage(), this.type, this.star));
                     }
                     let finalCd = this.getCooldown();
-                    if(this.type === 'TSTORM') finalCd *= 0.4;
+                    if(this.type === 'TSTORM') finalCd *= 0.4; 
                     this.timer = finalCd;
                 }
             }
@@ -462,7 +461,6 @@
                         } break;
                     case 'ICE':
                         this.target.hp -= fD; this.target.slowTimer = 45 + this.star*15; this.target.slowRatio = Math.max(0.15, 0.6 - (this.star*0.1)); break;
-                    
                     case 'STEAM': 
                         this.target.hp -= fD; this.target.armorBreakTimer = 180; this.target.burnTimer = 180; this.target.burnDmg = fD * 0.05;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:80, life:20, color:'156,163,175' }); break;
@@ -510,10 +508,9 @@
             }
             this.x += (dx/dist)*this.speed; this.y += (dy/dist)*this.speed; return true;
         }
-        draw() { ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(this.x, this.y, 10, 0, Math.PI*2); ctx.fill(); }
+        draw() { ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill(); }
     }
 
-    /* ================= 遊戲運作與 UI ================= */
     function updateAuras() {
         towers.forEach(t => t.fireBuff = 1);
         towers.forEach(t => {
@@ -524,6 +521,7 @@
         });
     }
 
+    /* ================= 介面顯示 ================= */
     function updateGameUI() {
         if (!gameState.isActive) return;
         document.getElementById('gameMoney').innerText = gameState.money;
@@ -538,7 +536,6 @@
         if (selectedTower) {
             let t = selectedTower, d = Math.floor(t.getDamage()), spd = (t.getCooldown()/60).toFixed(2);
             let sP = 15*Math.pow(2, t.star-1) + (t.upgradeLv*10);
-            
             let sk = "";
             switch(t.type) {
                 case 'FIRE': sk = `🔥火環: 周圍友軍攻擊 +${Math.round((1.3+t.star*0.2-1)*100)}%`; break;
@@ -546,18 +543,17 @@
                 case 'WIND': sk = `🌪️多重: 同時鎖定 ${1+t.star} 個目標`; break;
                 case 'ELEC': sk = `⚡連鎖: 彈跳 ${1+t.star} 個目標`; break;
                 case 'ICE': sk = `❄️冰霜: 減速目標至 ${Math.round((Math.max(0.15, 0.6-t.star*0.1))*100)}% 速度`; break;
-                case 'STEAM': sk = `🌫️蒸氣: 造成燙傷，並【破甲】(敵人受傷1.5倍)`; break;
-                case 'SLUSH': sk = `🧊碎冰: 產生大範圍泥沼，極度減速區域內所有敵人`; break;
-                case 'STORM': sk = `🌊暴雨: 產生衝擊浪潮，將範圍內的敵人向後【擊退】`; break;
-                case 'CONDU': sk = `🌩️導電: 大範圍感電連鎖，並造成短暫【暈眩】癱瘓`; break;
-                case 'THERM': sk = `🌋熱震: 擊中引發毀滅性大範圍爆裂，並附帶【破甲】`; break;
-                case 'FSTORM': sk = `🌪️火捲: 射出多道火風暴，在大範圍內引發【持續燃燒】`; break;
-                case 'PLASM': sk = `💥電漿: 融穿護甲，造成【250%超高爆發】單體傷害與破甲`; break;
-                case 'BLIZZ': sk = `🌨️風雪: 絕對零度氣流，大範圍【完全凍結】所有敵人`; break;
-                case 'SUPER': sk = `🔮超導: 釋放磁場領域，範圍內敵人同時【破甲】與【暈眩】`; break;
-                case 'TSTORM': sk = `⚡雷暴: 擁有【極限攻速】，每次擊中皆會造成震盪暈眩`; break;
+                case 'STEAM': sk = `🌫️蒸氣: 燙傷，並【破甲】(受傷1.5倍)`; break;
+                case 'SLUSH': sk = `🧊碎冰: 產生大範圍泥沼，極度減速區域內敵人`; break;
+                case 'STORM': sk = `🌊暴雨: 衝擊浪潮，將範圍內的敵人向後【擊退】`; break;
+                case 'CONDU': sk = `🌩️導電: 大範圍感電，造成【暈眩】癱瘓`; break;
+                case 'THERM': sk = `🌋熱震: 毀滅爆裂，附帶【破甲】`; break;
+                case 'FSTORM': sk = `🌪️火捲: 射出火風暴，大範圍【持續燃燒】`; break;
+                case 'PLASM': sk = `💥電漿: 【250%超高爆發】單體傷害與破甲`; break;
+                case 'BLIZZ': sk = `🌨️風雪: 大範圍【完全凍結】所有敵人`; break;
+                case 'SUPER': sk = `🔮超導: 釋放磁場，範圍敵人【破甲】與【暈眩】`; break;
+                case 'TSTORM': sk = `⚡雷暴: 【極限攻速】，每次擊中皆會暈眩`; break;
             }
-            
             info.innerHTML = `
                 <div class="info-top">
                     <span style="color:${t.baseStats.color}; font-weight:bold; font-size:15px;">${t.baseStats.name}塔 ★${t.star} <button class="btn btn-danger" onclick="sellSelected()" style="padding:4px 8px; font-size:12px; margin-left:10px;">出售($${sP})</button></span>
@@ -602,14 +598,24 @@
     }
     function sellSelected() { if(selectedTower){ gameState.money += 15*Math.pow(2, selectedTower.star-1) + (selectedTower.upgradeLv*10); towers = towers.filter(t=>t!==selectedTower); selectedTower=null; updateAuras(); updateGameUI(); } }
 
-    /* ================= 觸控與合成 ================= */
+    /* ================= 觸控與合成系統 (座標偏移精準修正) ================= */
     function getEventCoords(e) {
         let rect = canvas.getBoundingClientRect(); let cx, cy;
         if (e.touches && e.touches.length > 0) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; } 
         else if (e.changedTouches && e.changedTouches.length > 0) { cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY; }
         else { cx = e.clientX; cy = e.clientY; }
         if (cx === undefined || cy === undefined) return null;
-        return { x: (cx - rect.left) * (GAME_W / rect.width), y: (cy - rect.top) * (GAME_H / rect.height) };
+        
+        // 完美解決 object-fit: contain 產生的黑邊座標偏移問題
+        let scale = Math.min(rect.width / GAME_W, rect.height / GAME_H);
+        let actualW = GAME_W * scale;
+        let actualH = GAME_H * scale;
+        let offsetX = (rect.width - actualW) / 2;
+        let offsetY = (rect.height - actualH) / 2;
+        
+        let x = (cx - rect.left - offsetX) / scale;
+        let y = (cy - rect.top - offsetY) / scale;
+        return { x: x, y: y };
     }
 
     function handleStart(e) {
@@ -643,7 +649,6 @@
             else {
                 if(targetT) {
                     if(targetT.star === draggedTower.star) {
-                        // 煉金合成系統
                         let comboKey = `${targetT.type},${draggedTower.type}`;
                         if (targetT.baseStats.isBase && draggedTower.baseStats.isBase && COMBO_MAP[comboKey]) {
                             targetT.type = COMBO_MAP[comboKey];
@@ -755,23 +760,18 @@
         document.getElementById('pauseBtn').innerText = '⏸️ 暫停'; 
         
         pathCells = (mode === 'random') ? getLevelPath(Math.floor(Math.random()*10)+1) : getLevelPath(mode);
-        
-        ctx.clearRect(0, 0, GAME_W, GAME_H); drawGrid();
-        updateGameUI(); 
+        ctx.clearRect(0, 0, GAME_W, GAME_H); drawGrid(); updateGameUI(); 
     }
 
     function endGame(isWin) {
-        if (gameState.isOver) return; 
-        gameState.isOver = true; 
-        gameState.isActive = false; // 確實掐死事件處理
-
+        if (gameState.isOver) return; gameState.isOver = true; gameState.isActive = false; 
+        pressStoppers.forEach(fn => fn()); 
+        
         let title = isWin ? "🎉 防守成功 🎉" : "💀 任務失敗 💀";
         let eExp = gameState.wave * 15 + Math.floor(Math.pow(gameState.wave, 1.2));
         let eGold = gameState.wave * 10 + Math.floor(Math.pow(gameState.wave, 1.3));
         
-        if (isWin && gameState.mode !== 'random' && gameState.mode === player.maxLevel && player.maxLevel < 10) {
-            player.maxLevel++;
-        }
+        if (isWin && gameState.mode !== 'random' && gameState.mode === player.maxLevel && player.maxLevel < 10) { player.maxLevel++; }
 
         document.getElementById('resultTitle').innerText = title; 
         document.getElementById('resultTitle').style.color = isWin ? "var(--success)" : "var(--danger)";
@@ -782,7 +782,6 @@
         player.globalGold += eGold; player.exp += eExp;
         while(player.exp >= getMaxExp()) { player.exp -= getMaxExp(); player.level++; }
         saveData(); 
-        
         setTimeout(() => { document.getElementById('resultScreen').classList.remove('hidden'); }, 500);
     }
 
@@ -790,6 +789,10 @@
         document.getElementById('resultScreen').classList.add('hidden'); 
         document.getElementById('gameScreen').classList.add('hidden');
         document.getElementById('mainMenu').classList.remove('hidden'); 
+        
+        // 【關鍵修復】: 強制把主選單與關卡選單的狀態還原
+        document.getElementById('menuMain').classList.remove('hidden');
+        document.getElementById('menuLevel').classList.add('hidden');
         updateMenuUI();
     }
     
