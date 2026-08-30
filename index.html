@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>英雄元素守塔 - 巨型回字版</title>
+    <title>英雄元素守塔 - 穩定版</title>
     <style>
         :root {
             --bg-dark: #0f172a; --panel-bg: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; --gold: #fbbf24;
         }
-        /* 徹底禁止網頁全選、複製、長按彈出選單與放大鏡 */
+        /* 禁止全選、複製、長按彈出選單 */
         * {
             user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
             -webkit-touch-callout: none; box-sizing: border-box; touch-action: none;
@@ -37,7 +37,6 @@
         .btn-success { background-color: var(--success); }
         .btn-gold { background-color: #d97706; }
 
-        /* 首頁 */
         .header-card {
             background: var(--panel-bg); padding: 15px; border-radius: 0 0 15px 15px; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; border-bottom: 2px solid #334155;
@@ -47,7 +46,6 @@
         .exp-bar-fill { background: var(--success); height: 100%; width: 0%; transition: width 0.3s; }
         .menu-content { padding: 15px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex-grow: 1; }
         
-        /* 遊戲內頂部狀態欄 */
         .game-top-bar {
             flex-shrink: 0; background: var(--panel-bg); display: flex; justify-content: space-between; 
             align-items: center; padding: 10px 15px; font-size: 16px; font-weight: bold; z-index: 5;
@@ -57,14 +55,12 @@
             padding: 8px 15px; border-bottom: 2px solid #1e293b; z-index: 5; font-size: 15px; font-weight: bold;
         }
         
-        /* 遊戲畫布容器 (最大化填滿) */
         .canvas-container {
             flex-grow: 1; display: flex; justify-content: center; align-items: center; 
             overflow: hidden; background-color: #000;
         }
         canvas { width: 100%; height: 100%; object-fit: contain; cursor: pointer; }
         
-        /* 遊戲內底部控制面板 */
         .game-bottom-bar {
             flex-shrink: 0; background: var(--panel-bg); padding: 10px; display: flex; 
             flex-direction: column; gap: 10px; z-index: 5;
@@ -73,9 +69,7 @@
             background: #0f172a; padding: 10px; border-radius: 8px; font-size: 15px; 
             min-height: 45px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;
         }
-        .controls-grid {
-            display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 8px;
-        }
+        .controls-grid { display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 8px; }
 
         #resultScreen {
             background: rgba(15, 23, 42, 0.95); justify-content: center; align-items: center; 
@@ -84,7 +78,6 @@
         .result-box { background: var(--panel-bg); padding: 30px; border-radius: 15px; width: 100%; }
     </style>
 </head>
-<!-- 加入 oncontextmenu 阻擋右鍵與長按選單 -->
 <body oncontextmenu="return false;">
 
 <div id="app">
@@ -92,7 +85,7 @@
     <div id="mainMenu" class="screen">
         <div class="header-card">
             <div class="level-badge">指揮官 Lv.<span id="uiLevel">1</span></div>
-            <div>全塔基礎素質加成: +<span id="uiLevelBonus">0</span>%</div>
+            <div>全塔基礎加成: +<span id="uiLevelBonus">0</span>%</div>
             <div class="exp-bar-bg"><div class="exp-bar-fill" id="uiExpBar"></div></div>
             <div style="font-size:14px; color:#94a3b8">經驗值: <span id="uiExp">0</span> / <span id="uiMaxExp">100</span></div>
             <div style="margin-top:10px; font-size:20px; font-weight:bold; color:var(--gold);">💰 局外金幣: <span id="uiGlobalGold">0</span></div>
@@ -128,7 +121,6 @@
         </div>
 
         <div class="canvas-container">
-            <!-- 將解析度縮小為 8欄 x 12列 (TILE=100) -> 800x1200，讓畫面內的物件變巨大 -->
             <canvas id="gameCanvas" width="800" height="1200"></canvas>
         </div>
 
@@ -161,8 +153,8 @@
 <script>
     /* ================= 存檔系統 ================= */
     let player = { level: 1, exp: 0, globalGold: 0, tech: { dmgLv: 0, spdLv: 0, moneyLv: 0 }};
-    function loadData() { const s = localStorage.getItem('heroTD_v4'); if(s) player = {...player, ...JSON.parse(s)}; updateMenuUI(); }
-    function saveData() { localStorage.setItem('heroTD_v4', JSON.stringify(player)); }
+    function loadData() { const s = localStorage.getItem('heroTD_v5'); if(s) player = {...player, ...JSON.parse(s)}; updateMenuUI(); }
+    function saveData() { localStorage.setItem('heroTD_v5', JSON.stringify(player)); }
     function getMaxExp() { return 100 + (player.level - 1) * 50; }
 
     function updateMenuUI() {
@@ -194,12 +186,12 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    // 將網格縮小至 8x12，讓畫面物件倍增放大
     const GAME_W = 800, GAME_H = 1200, TILE = 100, COLS = 8, ROWS = 12;
-    const MAX_TOWERS = 20; // 內圈建塔極限空間
+    const MAX_TOWERS = 20; 
     
     let gameMode = 'level';
-    let gameState = { money: 0, wave: 1, frame: 0, isOver: false, isPaused: false, loopId: null, globalDmgLv: 0, summonLv: 0, bossSpawned: false };
+    let globalLoopId = null; // 嚴格控制畫面迴圈唯一性
+    let gameState = { money: 0, wave: 1, frame: 0, isOver: false, isPaused: false, globalDmgLv: 0, summonLv: 0, bossSpawned: false };
     let pathCells = [], enemies = [], towers = [], bullets = [], visuals = [];
     let draggedTower = null, selectedTower = null;
     let dragStartX = 0, dragStartY = 0, mouseX = 0, mouseY = 0;
@@ -226,31 +218,27 @@
                 this.maxHp = 1000 + wave * 400 + Math.pow(wave, 2.2) * 15;
                 this.hp = this.maxHp;
                 this.baseSpeed = 0.8 + (wave * 0.015);
-                this.radius = 35; // 巨大 BOSS
-                this.reward = 100;
+                this.radius = 35; this.reward = 100;
                 this.color = ELEMENTS[this.bossType].color;
             } else {
                 this.maxHp = 60 + wave * 45 + Math.pow(wave, 1.7) * 5;
                 this.hp = this.maxHp;
                 this.baseSpeed = 1.5 + (wave * 0.025);
-                this.radius = 20; // 放大怪獸
-                this.reward = 5 + Math.floor(wave / 5);
+                this.radius = 20; this.reward = 5 + Math.floor(wave / 5);
                 this.color = '#a855f7';
             }
         }
         update() {
             let nextIndex = (this.pathIndex + 1) % pathCells.length;
             let tg = pathCells[nextIndex];
-
             let spd = this.slowTimer > 0 ? this.baseSpeed * this.slowRatio : this.baseSpeed;
             if(this.slowTimer > 0) this.slowTimer--;
 
             let tx = tg.x * TILE + TILE/2, ty = tg.y * TILE + TILE/2;
             let dx = tx - this.x, dy = ty - this.y, dist = Math.hypot(dx, dy);
 
-            // 如果距離起點太遠 (代表路線循環的跳躍點)，瞬間移動
+            // 處理隨機迷宮的瞬間移動 (無縫接軌)
             if (dist > TILE * 2) { this.x = tx; this.y = ty; this.pathIndex = nextIndex; return this.hp > 0; }
-
             if (dist < spd) { this.x = tx; this.y = ty; this.pathIndex = nextIndex; } 
             else { this.x += (dx/dist)*spd; this.y += (dy/dist)*spd; }
             return this.hp > 0;
@@ -261,7 +249,6 @@
             if(this.slowTimer > 0) { ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 5; ctx.stroke(); }
             if(this.isBoss) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke(); }
             
-            // 血條也放大
             ctx.fillStyle = '#1e293b'; ctx.fillRect(this.x-30, this.y-this.radius-15, 60, 8);
             ctx.fillStyle = this.isBoss ? '#ef4444' : '#22c55e'; ctx.fillRect(this.x-30, this.y-this.radius-15, 60*(this.hp/this.maxHp), 8);
             
@@ -302,12 +289,10 @@
             }
         }
         draw(dx = this.x, dy = this.y) {
-            // 防禦塔底座放大
             ctx.fillStyle = this.isBench ? '#334155' : '#1e293b'; ctx.fillRect(dx-40, dy-40, 80, 80);
             if (this === selectedTower && !draggedTower) { ctx.strokeStyle='#fbbf24'; ctx.lineWidth=4; ctx.strokeRect(dx-42, dy-42, 84, 84); }
             if (this.fireBuff > 1 && !this.isBench) { ctx.beginPath(); ctx.arc(dx, dy, 40, 0, Math.PI*2); ctx.fillStyle='rgba(239, 68, 68, 0.3)'; ctx.fill(); }
             
-            // 塔心放大
             ctx.fillStyle = this.baseStats.color; ctx.beginPath(); ctx.arc(dx, dy, 26, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = 'white'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign='left'; ctx.fillText('★'+this.star, dx-38, dy-16);
             ctx.fillStyle = 'white'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(this.baseStats.name, dx, dy+6);
@@ -376,7 +361,6 @@
         document.getElementById('uiUpgDmgLv').innerText = gameState.globalDmgLv;
         document.getElementById('uiUpgDmgCost').innerText = 20 + gameState.globalDmgLv * 10;
         
-        // 更新召喚機率提示
         let p3 = gameState.summonLv * 1; let p2 = gameState.summonLv * 2;
         document.getElementById('uiUpgSummonLv').innerText = gameState.summonLv;
         document.getElementById('uiUpgSummonCost').innerText = 50 + gameState.summonLv * 20;
@@ -396,39 +380,43 @@
         }
     }
 
-    /* ================= 長按增強按鈕 ================= */
+    /* ================= 系統級安全防呆 (解決長按卡死問題) ================= */
+    let pressStoppers = []; // 儲存所有的強制清除函數，確保遊戲結束時清空背景執行緒
     function bindLongPress(id, actionFunc) {
         let el = document.getElementById(id);
         let timer = null, interval = null, isPressing = false;
+        
+        const stop = () => {
+            isPressing = false; clearTimeout(timer); clearInterval(interval);
+        };
         const start = (e) => {
-            if(e && e.cancelable) e.preventDefault();
+            if (e && e.type !== 'mousedown') e.preventDefault(); 
             if(isPressing || el.disabled) return;
             isPressing = true; actionFunc();
             timer = setTimeout(() => { interval = setInterval(actionFunc, 120); }, 300);
         };
-        const stop = (e) => {
-            if(e && e.cancelable) e.preventDefault();
-            isPressing = false; clearTimeout(timer); clearInterval(interval);
-        };
-        el.addEventListener('mousedown', start); el.addEventListener('touchstart', start, {passive: false});
-        el.addEventListener('mouseup', stop); el.addEventListener('mouseleave', stop);
-        el.addEventListener('touchend', stop); el.addEventListener('touchcancel', stop);
-        el.oncontextmenu = () => false; 
+        
+        el.addEventListener('mousedown', start); 
+        el.addEventListener('touchstart', start, {passive: false});
+        // 綁定到 window 確保滑出按鈕鬆開時仍會停止計時器
+        window.addEventListener('mouseup', stop);
+        window.addEventListener('touchend', stop);
+        
+        pressStoppers.push(stop);
     }
 
     bindLongPress('btnUpgDmg', () => {
         let cost = 20 + gameState.globalDmgLv * 10;
-        if (gameState.money >= cost) { gameState.money -= cost; gameState.globalDmgLv++; updateGameUI(); }
+        if (gameState.money >= cost && !gameState.isOver) { gameState.money -= cost; gameState.globalDmgLv++; updateGameUI(); }
     });
     bindLongPress('btnUpgSummon', () => {
         let cost = 50 + gameState.summonLv * 20;
-        if (gameState.money >= cost) { gameState.money -= cost; gameState.summonLv++; updateGameUI(); }
+        if (gameState.money >= cost && !gameState.isOver) { gameState.money -= cost; gameState.summonLv++; updateGameUI(); }
     });
 
     function summonTower() {
         if(gameState.money >= 30) {
             let empty = null;
-            // 備戰區 Y=10, 11 (共 16 格)
             for(let y=10; y<=11; y++){ for(let x=0; x<COLS; x++){ if(!towers.find(t=>t.gridX===x && t.gridY===y)) { empty={x,y}; break; } } if(empty) break; }
             if(empty) {
                 gameState.money-=30; 
@@ -440,12 +428,11 @@
             } else alert("備戰區已滿！請先合成塔。");
         }
     }
-    
     function sellSelected() {
         if(selectedTower){ gameState.money += 15*Math.pow(2, selectedTower.star-1); towers = towers.filter(t=>t!==selectedTower); selectedTower=null; updateAuras(); updateGameUI(); }
     }
 
-    /* ================= 防呆拖曳系統 ================= */
+    /* ================= 觸控操作防呆 ================= */
     function getEventCoords(e) {
         let rect = canvas.getBoundingClientRect();
         let cx, cy;
@@ -474,7 +461,7 @@
             if(!pos) { draggedTower.updatePosition(); draggedTower = null; return; }
             let dropX = Math.floor(pos.x / TILE), dropY = Math.floor(pos.y / TILE);
             
-            // 安全邊界驗證
+            // 安全邊界
             if(isNaN(dropX) || isNaN(dropY) || dropX < 0 || dropX >= COLS || dropY < 0 || dropY >= ROWS) { 
                 draggedTower.updatePosition(); draggedTower = null; return; 
             }
@@ -511,26 +498,21 @@
     canvas.addEventListener('touchstart', (e)=>{ e.preventDefault(); handleStart(e); }, {passive:false});
     canvas.addEventListener('touchmove', (e)=>{ e.preventDefault(); handleMove(e); }, {passive:false});
     canvas.addEventListener('touchend', (e)=>{ e.preventDefault(); handleEnd(e); }, {passive:false});
-    canvas.oncontextmenu = () => false;
 
-    /* ================= 遊戲迴圈與繪圖 ================= */
+    /* ================= 遊戲繪製與核心迴圈 ================= */
     function drawGrid() {
         ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, GAME_W, GAME_H);
-        
-        ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
+        ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2;
         for(let i=0; i<=GAME_W; i+=TILE) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 9*TILE); ctx.stroke(); }
         for(let j=0; j<=9*TILE; j+=TILE) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(GAME_W, j); ctx.stroke(); }
 
-        // 怪獸行走路徑
         ctx.fillStyle = '#334155'; for(let c of pathCells) ctx.fillRect(c.x*TILE, c.y*TILE, TILE, TILE);
         
-        // 備戰區分界線
         ctx.fillStyle = '#0b1120'; ctx.fillRect(0, 9*TILE, GAME_W, TILE);
         ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
         ctx.fillText("⬇️ 備戰區 (拖曳疊加升星) ⬇️", GAME_W/2, 9*TILE + TILE/2);
         
-        // 備戰區 16 格 (8x2)
-        ctx.strokeStyle = '#334155'; ctx.lineWidth = 2;
+        ctx.strokeStyle = '#334155'; ctx.lineWidth = 3;
         for(let y=10; y<=11; y++) { for(let x=0; x<COLS; x++) ctx.strokeRect(x*TILE, y*TILE, TILE, TILE); }
     }
 
@@ -553,13 +535,8 @@
             
             enemies = enemies.filter(e => { let a = e.update(); if(a) e.draw(); return a && e.hp>0; });
 
-            // 敗北條件：場上滿 30 隻
             if (enemies.length >= 30) { return endGame(false); }
-
-            // 關卡模式通關
-            if (gameMode === 'level' && gameState.wave >= 50 && gameState.bossSpawned && enemies.length === 0) {
-                return endGame(true);
-            }
+            if (gameMode === 'level' && gameState.wave >= 50 && gameState.bossSpawned && enemies.length === 0) { return endGame(true); }
 
             if (selectedTower && !draggedTower) {
                 ctx.beginPath(); ctx.arc(selectedTower.x, selectedTower.y, selectedTower.baseStats.range, 0, Math.PI*2);
@@ -582,32 +559,33 @@
                 }
                 draggedTower.draw(mouseX, mouseY);
             }
-            gameState.loopId = requestAnimationFrame(loop);
+            globalLoopId = requestAnimationFrame(loop);
         } catch (err) {
-            console.error(err); // 防止整個遊戲當掉崩潰
-            gameState.loopId = requestAnimationFrame(loop);
+            console.error(err); 
+            if (!gameState.isOver && !gameState.isPaused) globalLoopId = requestAnimationFrame(loop);
         }
     }
 
-    /* ================= 遊戲流程控制 ================= */
+    /* ================= 遊戲狀態管理 ================= */
     function togglePause() {
         gameState.isPaused = !gameState.isPaused;
         document.getElementById('pauseBtn').innerText = gameState.isPaused ? '▶️ 繼續' : '⏸️ 暫停';
-        if (!gameState.isPaused) requestAnimationFrame(loop);
+        if (!gameState.isPaused) globalLoopId = requestAnimationFrame(loop);
     }
-    function leaveGame() { if(confirm("確定要離開結算嗎？(關卡模式視為失敗)")) { endGame(false); } }
+    
+    function leaveGame() { 
+        if(confirm("確定要離開嗎？(關卡模式將視為失敗)")) { endGame(false); } 
+    }
 
-    // 建立經典「回」字型迴圈 (外圍繞圈)
     function buildLoopPath() {
         let p = [];
-        for(let x=0; x<=7; x++) p.push({x, y:0}); // 上邊
-        for(let y=1; y<=8; y++) p.push({x:7, y}); // 右邊
-        for(let x=6; x>=0; x--) p.push({x, y:8}); // 下邊
-        for(let y=7; y>=1; y--) p.push({x:0, y}); // 左邊
+        for(let x=0; x<=7; x++) p.push({x, y:0});
+        for(let y=1; y<=8; y++) p.push({x:7, y});
+        for(let x=6; x>=0; x--) p.push({x, y:8});
+        for(let y=7; y>=1; y--) p.push({x:0, y});
         return p;
     }
     
-    // 建立 8 字型雙迴圈 (確保無 BUG)
     function buildRandomPath() {
         let p = [];
         for(let x=0; x<=7; x++) p.push({x, y:2});
@@ -618,33 +596,53 @@
     }
 
     function startGame(mode) {
-        document.getElementById('mainMenu').classList.add('hidden'); document.getElementById('gameScreen').classList.remove('hidden');
+        document.getElementById('mainMenu').classList.add('hidden'); 
+        document.getElementById('gameScreen').classList.remove('hidden');
+        
         gameMode = mode;
-        gameState = { money: 250 + (player.tech.moneyLv*20), wave: 1, frame: 0, isOver: false, isPaused: false, loopId: null, globalDmgLv: 0, summonLv: 0, bossSpawned: false };
+        gameState = { money: 250 + (player.tech.moneyLv*20), wave: 1, frame: 0, isOver: false, isPaused: false, globalDmgLv: 0, summonLv: 0, bossSpawned: false };
         enemies = []; towers = []; bullets = []; visuals = []; draggedTower = null; selectedTower = null;
         
         document.getElementById('maxWaveText').innerText = mode === 'level' ? '/50' : ' (無盡)';
+        document.getElementById('pauseBtn').innerText = '⏸️ 暫停'; // 修復按鈕狀態殘留Bug
+        
         pathCells = mode === 'level' ? buildLoopPath() : buildRandomPath();
         
-        updateGameUI(); gameState.loopId = requestAnimationFrame(loop);
+        if (globalLoopId) cancelAnimationFrame(globalLoopId); // 強制清除殘留的畫面更新
+        updateGameUI(); 
+        globalLoopId = requestAnimationFrame(loop);
     }
 
     function endGame(isWin) {
-        gameState.isOver = true; cancelAnimationFrame(gameState.loopId);
-        let title = isWin ? "🎉 防守成功 🎉" : "💀 任務失敗 💀";
-        let eExp = gameState.wave * 15 + Math.floor(Math.pow(gameState.wave, 1.2)), eGold = gameState.wave * 10 + Math.floor(Math.pow(gameState.wave, 1.3));
+        if (gameState.isOver) return; // 【關鍵修復】防止同時觸發兩次結算，造成雙倍金錢與重疊
+        gameState.isOver = true; 
+        if (globalLoopId) cancelAnimationFrame(globalLoopId);
         
-        document.getElementById('resultTitle').innerText = title; document.getElementById('resultTitle').style.color = isWin ? "var(--success)" : "var(--danger)";
-        document.getElementById('resWave').innerText = gameState.wave; document.getElementById('resExp').innerText = eExp; document.getElementById('resGold').innerText = eGold;
+        // 【關鍵修復】強制中止所有還在背景運作的「長按升級」
+        pressStoppers.forEach(fn => fn()); 
+        
+        let title = isWin ? "🎉 防守成功 🎉" : "💀 任務失敗 💀";
+        let eExp = gameState.wave * 15 + Math.floor(Math.pow(gameState.wave, 1.2));
+        let eGold = gameState.wave * 10 + Math.floor(Math.pow(gameState.wave, 1.3));
+        
+        document.getElementById('resultTitle').innerText = title; 
+        document.getElementById('resultTitle').style.color = isWin ? "var(--success)" : "var(--danger)";
+        document.getElementById('resWave').innerText = gameState.wave; 
+        document.getElementById('resExp').innerText = eExp; 
+        document.getElementById('resGold').innerText = eGold;
         
         player.globalGold += eGold; player.exp += eExp;
         while(player.exp >= getMaxExp()) { player.exp -= getMaxExp(); player.level++; }
-        saveData(); setTimeout(() => { document.getElementById('resultScreen').classList.remove('hidden'); }, 500);
+        saveData(); 
+        
+        setTimeout(() => { document.getElementById('resultScreen').classList.remove('hidden'); }, 500);
     }
 
     function returnToMenu() {
-        document.getElementById('resultScreen').classList.add('hidden'); document.getElementById('gameScreen').classList.add('hidden');
-        document.getElementById('mainMenu').classList.remove('hidden'); updateMenuUI();
+        document.getElementById('resultScreen').classList.add('hidden'); 
+        document.getElementById('gameScreen').classList.add('hidden');
+        document.getElementById('mainMenu').classList.remove('hidden'); 
+        updateMenuUI();
     }
     loadData();
 </script>
