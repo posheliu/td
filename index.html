@@ -125,12 +125,12 @@
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <button class="btn btn-success" style="padding: 12px; font-size: 16px;" onclick="showSubMenu('menuLevel')">🗺️ 劇情關卡</button>
                 <button class="btn btn-purple" style="padding: 12px; font-size: 16px;" onclick="showSubMenu('menuGacha')">🔮 扭蛋中心</button>
-                <button class="btn btn-gold" style="padding: 15px; font-size: 18px; grid-column: span 2;" onclick="showSubMenu('menuFree')">⚙️ 自由模式 (自訂局)</button>
+                <button class="btn btn-gold" style="padding: 15px; font-size: 18px; grid-column: span 2;" onclick="showSubMenu('menuFree')">⚙️ 自由模式 (自訂局與無盡)</button>
             </div>
             
             <div style="font-size:13px; color:#94a3b8; background:#0f172a; padding:10px; border-radius:8px; line-height: 1.5; margin-top:5px;">
-                ⚠️ <strong>通膨法則</strong>：局內每次購買/升級塔，所需費用將提升 10%！<br>
-                ⚔️ <strong>相剋與變異</strong>：全塔皆有屬性，善用煉金合成對抗高波數變異怪。
+                ⚠️ <strong>通膨法則</strong>：局內購買與升級費用遞增 10% (最高漲幅 20)。<br>
+                ✨ <strong>位元煉金</strong>：不同塔種只要相加的「屬性元素」符合配方且已解鎖，即可跨階融合！(例如：火捲塔+雷塔 = 天罰塔)
             </div>
 
             <hr style="border:1px solid #334155; width:100%; margin: 2px 0;">
@@ -143,7 +143,7 @@
         <!-- 子選單：關卡選擇 -->
         <div class="menu-content hidden" id="menuLevel">
             <h2 style="text-align:center; margin:0;">🗺️ 劇情關卡</h2>
-            <p style="text-align:center; color:#94a3b8; font-size:14px; margin:0;">(固定回字地圖 / 每關50波極限防禦)</p>
+            <p style="text-align:center; color:#94a3b8; font-size:14px; margin:0;">(每關50波極限防禦 / 滿怪失敗)</p>
             <div class="level-grid" id="levelGridUI"></div>
             <button class="btn btn-danger" style="margin-top:auto; padding:12px;" onclick="hideSubMenu()">🔙 返回首頁</button>
         </div>
@@ -174,9 +174,9 @@
             <div class="free-mode-form">
                 <label>🔥 難易度：
                     <select id="fmDiff">
-                        <option value="EASY">🌱 新手 (怪物血量 70%，容錯極高)</option>
+                        <option value="EASY">🌱 新手 (怪物血量 70%，容錯高)</option>
                         <option value="NORMAL" selected>⚔️ 中等 (標準挑戰)</option>
-                        <option value="HARD">💀 地獄 (怪物血量 150%，極速，容錯低)</option>
+                        <option value="HARD">💀 地獄 (怪物血量 150%，移速快)</option>
                     </select>
                 </label>
                 <label>🗺️ 地圖：
@@ -197,7 +197,7 @@
                         <option value="30">30 波</option>
                         <option value="50" selected>50 波</option>
                         <option value="100">100 波</option>
-                        <option value="999">無盡模式 (不限波數)</option>
+                        <option value="999">🌌 無盡模式 (不限波數)</option>
                     </select>
                 </label>
             </div>
@@ -263,7 +263,7 @@
 </div>
 
 <script>
-    /* ================= 完美存檔繼承系統 ================= */
+    /* ================= 完美存檔系統 ================= */
     let player = { 
         level: 1, exp: 0, globalGold: 500, maxLevel: 1, endlessRecord: 0,
         tech: { dmgLv: 0, spdLv: 0, moneyLv: 0 },
@@ -312,7 +312,7 @@
         document.getElementById('uiRelicBoss').innerText = Math.floor(player.relics.bossDmg * 100);
         
         let comboUI = document.getElementById('unlockedCombosList');
-        comboUI.innerHTML = player.unlockedCombos.length === 0 ? '尚未解鎖配方' : 
+        comboUI.innerHTML = player.unlockedCombos.length === 0 ? '尚未解鎖任何配方' : 
             player.unlockedCombos.map(k => `<span style="background:#1e293b; padding:4px 8px; border-radius:4px;">${ELEMENTS[k].name}塔</span>`).join('');
     }
 
@@ -334,7 +334,8 @@
         saveData(); updateMenuUI();
     }
 
-    /* ================= 終極位元煉金系統 ================= */
+    /* ================= 終極位元煉金引擎 (Bitwise Alchemy) ================= */
+    // FIRE=1, WATER=2, WIND=4, ELEC=8, ICE=16
     const ELEMENTS = {
         'FIRE':  { bit: 1, color: '#ef4444', name: '火', dmg: 35, cd: 45, range: 300, isBase: true, recipeStr: '火' },
         'WATER': { bit: 2, color: '#3b82f6', name: '水', dmg: 20, cd: 30, range: 280, isBase: true, recipeStr: '水' },
@@ -342,6 +343,7 @@
         'ELEC':  { bit: 8, color: '#eab308', name: '電', dmg: 55, cd: 55, range: 280, isBase: true, recipeStr: '雷' },
         'ICE':   { bit: 16, color: '#06b6d4', name: '冰', dmg: 25, cd: 40, range: 250, isBase: true, recipeStr: '冰' },
         
+        // T2 雙重
         'STEAM': { bit: 3, color: '#9ca3af', name: '蒸氣', dmg: 25, cd: 25, range: 310, isBase: false, recipeStr: '水+火' }, 
         'SLUSH': { bit: 18, color: '#7dd3fc', name: '碎冰', dmg: 30, cd: 40, range: 290, isBase: false, recipeStr: '水+冰' }, 
         'STORM': { bit: 6, color: '#1d4ed8', name: '暴雨', dmg: 40, cd: 35, range: 310, isBase: false, recipeStr: '水+風' }, 
@@ -353,6 +355,7 @@
         'SUPER': { bit: 24, color: '#c084fc', name: '超導', dmg: 60, cd: 50, range: 340, isBase: false, recipeStr: '冰+雷' }, 
         'TSTORM':{ bit: 12, color: '#84cc16', name: '雷暴', dmg: 40, cd: 20, range: 300, isBase: false, recipeStr: '風+雷' },
         
+        // T3, T5 終極
         'MHD':   { bit: 11, color: '#f43f5e', name: '磁流體', dmg: 90, cd: 35, range: 340, isBase: false, recipeStr: '水+火+雷' },
         'AURORA':{ bit: 28, color: '#67e8f9', name: '極光',  dmg: 80, cd: 30, range: 400, isBase: false, recipeStr: '冰+風+雷' },
         'SOLAR': { bit: 13, color: '#facc15', name: '天罰',  dmg: 180, cd: 60, range: 360, isBase: false, recipeStr: '火+風+雷' },
@@ -361,6 +364,7 @@
     const BASE_KEYS = ['FIRE', 'WATER', 'WIND', 'ELEC', 'ICE'];
     const COUNTERS = { 'WATER': 'FIRE', 'FIRE': 'ICE', 'ICE': 'WIND', 'WIND': 'ELEC', 'ELEC': 'WATER' };
 
+    // 將二進位轉回塔名
     const BIT_TO_KEY = {};
     for(let k in ELEMENTS) BIT_TO_KEY[ELEMENTS[k].bit] = k;
     const DERIVED_KEYS = Object.keys(ELEMENTS).filter(k => !ELEMENTS[k].isBase);
@@ -377,7 +381,7 @@
         if (roll < 0.4 && lockedTowers.length > 0) {
             let t = lockedTowers[Math.floor(Math.random() * lockedTowers.length)];
             player.unlockedCombos.push(t);
-            resText.innerHTML = `🎉 獲得高階配方！<br><br><span style="color:${ELEMENTS[t].color}; font-size:32px; text-shadow: 1px 1px 2px black;">${ELEMENTS[t].name}塔</span><br><br><span style="font-size:16px; color:#cbd5e1;">配方：${ELEMENTS[t].recipeStr}</span>`;
+            resText.innerHTML = `🎉 獲得配方！<br><br><span style="color:${ELEMENTS[t].color}; font-size:32px; text-shadow: 1px 1px 2px black;">${ELEMENTS[t].name}塔</span><br><br><span style="font-size:16px; color:#cbd5e1;">配方：${ELEMENTS[t].recipeStr}</span>`;
         } else {
             let r = Math.random();
             if(r < 0.33) {
@@ -396,17 +400,23 @@
         modal.classList.remove('hidden');
     }
 
-    /* ================= Web Worker 引擎 ================= */
+    /* ================= 遊戲核心與通膨系統 ================= */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const GAME_W = 720, GAME_H = 1080, TILE = 120, COLS = 6, ROWS = 9;
     
-    // 【動態通膨系統】：將費用存入狀態中
+    // 【動態通膨系統】：計算下一階費用 (增加10%，最高加20，最少加1)
+    function getNextCost(currentCost) {
+        let inc = Math.floor(currentCost * 0.1);
+        if (inc > 20) inc = 20;
+        if (inc < 1) inc = 1; 
+        return currentCost + inc;
+    }
+
     let gameState = { 
         isActive: false, money: 0, wave: 1, frame: 0, isOver: false, isPaused: false, 
         globalDmgLv: 0, summonLv: 0, bossSpawned: false, speed: 1,
         diffMulti: 1.0, mapType: 'O', lossCond: 'BOARD', maxWave: 50, isStory: false, limitCount: 30, leakCount: 0,
-        // 動態成本
         costSummon: 30, costDmg: 20, costStar: 50
     };
     let pathCells = [], enemies = [], towers = [], bullets = [], visuals = [];
@@ -468,15 +478,15 @@
         
         enemies = enemies.filter(e => { 
             let alive = e.update(); 
-            if (e.hp <= 0 && alive === false) { // 被打死
+            if (e.hp <= 0 && alive === false) { 
                 gameState.money += e.reward;
                 visuals.push({ t:'text', text:'+$'+e.reward, x: e.x, y: e.y - 20, life: 25, color: '#fbbf24' });
                 return false;
             }
-            return alive; // 漏怪的話會在 e.update() 回傳 false，但不加錢
+            return alive; 
         });
 
-        // 敗北條件判定
+        // 敗北條件
         if (gameState.lossCond === 'BOARD') {
             let mCount = enemies.reduce((sum, e) => sum + (e.isBoss ? 10 : 1), 0);
             if (mCount >= gameState.limitCount) { endGame(false); return; }
@@ -484,7 +494,7 @@
             if (gameState.leakCount >= gameState.limitCount) { endGame(false); return; }
         }
         
-        // 勝利條件判定
+        // 勝利條件
         if (gameState.wave >= gameState.maxWave && gameState.bossSpawned && enemies.length === 0) { endGame(true); return; }
 
         towers.forEach(t => { if(t !== draggedTower) t.update(); });
@@ -504,7 +514,7 @@
         
         ctx.fillStyle = '#0b1120'; ctx.fillRect(0, 7*TILE, GAME_W, TILE);
         ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText("⬇️ 備戰區 (同星疊加/無配方則自動交換) ⬇️", GAME_W/2, 7*TILE + TILE/2);
+        ctx.fillText("⬇️ 備戰區 (同星疊加可升星或融合) ⬇️", GAME_W/2, 7*TILE + TILE/2);
         
         ctx.strokeStyle = '#334155'; ctx.lineWidth = 4;
         for(let x=0; x<COLS; x++) ctx.strokeRect(x*TILE, 8*TILE, TILE, TILE);
@@ -546,14 +556,13 @@
             let mCount = enemies.reduce((sum, e) => sum + (e.isBoss ? 10 : 1), 0);
             cEl.innerText = `${mCount}/${gameState.limitCount}`;
             cEl.style.color = mCount >= gameState.limitCount * 0.7 ? 'var(--danger)' : 'var(--success)';
-            document.getElementById('gameLimitLabel').innerHTML = `場上: <span id="gameMonsterCount" style="color:${cEl.style.color}">${mCount}/${gameState.limitCount}</span> <span style="font-size:11px;color:#94a3b8">(BOSS佔10)</span>`;
+            document.getElementById('gameLimitLabel').innerHTML = `場上: <span id="gameMonsterCount" style="color:${cEl.style.color}">${mCount}/${gameState.limitCount}</span> <span style="font-size:11px;color:#94a3b8">(BOSS=10)</span>`;
         } else {
             cEl.innerText = `${gameState.leakCount}/${gameState.limitCount}`;
             cEl.style.color = gameState.leakCount >= gameState.limitCount * 0.7 ? 'var(--danger)' : 'var(--success)';
-            document.getElementById('gameLimitLabel').innerHTML = `漏怪: <span id="gameMonsterCount" style="color:${cEl.style.color}">${gameState.leakCount}/${gameState.limitCount}</span> <span style="font-size:11px;color:#94a3b8">(BOSS扣10)</span>`;
+            document.getElementById('gameLimitLabel').innerHTML = `漏怪: <span id="gameMonsterCount" style="color:${cEl.style.color}">${gameState.leakCount}/${gameState.limitCount}</span> <span style="font-size:11px;color:#94a3b8">(BOSS=10)</span>`;
         }
         
-        // 動態成本 UI 更新
         document.getElementById('uiUpgDmgLv').innerText = gameState.globalDmgLv;
         document.getElementById('uiUpgDmgCost').innerText = gameState.costDmg;
         document.getElementById('uiUpgSummonLv').innerText = gameState.summonLv;
@@ -561,7 +570,7 @@
         document.getElementById('uiSummonCost').innerText = gameState.costSummon;
     }
 
-    /* ================= 遊戲物件 ================= */
+    /* ================= 變異怪獸系統 ================= */
     class Enemy {
         constructor(wave, archetype) {
             this.pathIndex = 0; this.archetype = archetype; this.isBoss = (archetype === 'BOSS');
@@ -570,8 +579,8 @@
             this.wetTimer = 0;
 
             this.elementType = BASE_KEYS[Math.floor(Math.random() * BASE_KEYS.length)];
-            
             this.traits = [];
+            
             if(wave >= 11) this.traits.push('HARD_SKIN');
             if(wave >= 21) this.traits.push('CC_RESIST');
             if(wave >= 31) this.traits.push('SWIFT');
@@ -612,7 +621,7 @@
             if(this.traits.includes('TITAN')) dr *= 0.1;
             else if(this.traits.includes('SUPER_SHIELD')) dr *= 0.25;
             else if(this.traits.includes('SHIELD')) dr *= 0.5;
-            if(this.traits.includes('HARD_SKIN')) dr *= 0.5;
+            if(this.traits.includes('HARD_SKIN')) dr *= 0.7;
             this.hp -= dmg * dr;
         }
 
@@ -650,26 +659,22 @@
             if(this.slowTimer > 0) this.slowTimer--;
 
             let tg = pathCells[this.pathIndex + 1];
-            if (!tg) return this.hp > 0; // Fallback
+            if (!tg) return this.hp > 0; 
 
             let tx = tg.x * TILE + TILE/2, ty = tg.y * TILE + TILE/2;
             let dx = tx - this.x, dy = ty - this.y, dist = Math.hypot(dx, dy);
 
-            // 到達節點
             if (dist < spd) {
                 this.pathIndex++;
-                // 【漏怪判定引擎】
                 if (this.pathIndex >= pathCells.length - 1) {
                     if (gameState.lossCond === 'LEAK') {
                         gameState.leakCount += this.isBoss ? 10 : 1;
                         visuals.push({ t:'text', text:'❌漏怪', x: this.x, y: this.y, life: 30, color: '#ef4444' });
-                        return false; // Enemy is removed without reward
+                        return false; 
                     } else {
-                        // 如果是滿怪模式且地圖是迴圈，就繞回去
                         if (pathCells[0].x === pathCells[pathCells.length-1].x && pathCells[0].y === pathCells[pathCells.length-1].y) {
                             this.pathIndex = 0; 
                         } else {
-                            // 非迴圈地圖就在終點卡著
                             this.pathIndex = Math.max(0, pathCells.length - 2); 
                         }
                     }
@@ -817,31 +822,6 @@
                     case 'ICE':
                         this.target.applyDamage(fD); this.target.applyCC('SLOW_ICE', 45 + this.star*15, Math.max(0.15, 0.6 - (this.star*0.1))); break;
                     
-                    case 'THERM': 
-                        if (this.target.traits.includes('HARD_SKIN') || this.target.traits.includes('SHIELD') || this.target.traits.includes('SUPER_SHIELD') || this.target.traits.includes('TITAN')) {
-                            fD *= 2.0; visuals.push({ t:'text', text:'熱衝擊!', x: this.target.x, y: this.target.y - 25, life: 30, color: '#f97316' });
-                        }
-                        this.target.applyDamage(fD); let rth = 180 + this.star*25;
-                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rth, life:20, color:'249,115,22' });
-                        this.applyAoe(rth, e => { e.applyDamage(fD * 0.8); e.armorBreakTimer = 180; }); break;
-                    
-                    case 'SUPER': 
-                        this.target.applyDamage(fD); let rsu = 150 + this.star*20;
-                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rsu, life:20, color:'192,132,252' });
-                        this.applyAoe(rsu, e => { e.armorBreakTimer = 180; e.applyCC('STUN', 15, null); e.applyDamage(fD*0.6); }); break;
-                    
-                    case 'CONDU': 
-                        let wetMult = this.target.wetTimer > 0 ? 2.0 : 1.0;
-                        if(wetMult > 1) visuals.push({ t:'text', text:'激電擴散!', x: this.target.x, y: this.target.y - 25, life: 30, color: '#a855f7' });
-                        this.target.applyDamage(fD * wetMult); 
-                        
-                        let cc = enemies.filter(e => e!==this.target && Math.hypot(e.x-this.target.x, e.y-this.target.y)<280);
-                        for(let i=0; i<Math.min(cc.length, 2+this.star); i++) {
-                            let cWM = cc[i].wetTimer > 0 ? 2.0 : 1.0;
-                            cc[i].applyDamage(fD * 0.7 * cWM); 
-                            visuals.push({ t:'bolt', x1:this.target.x, y1:this.target.y, x2:cc[i].x, y2:cc[i].y, life:10, color:'168,85,247' });
-                        } break;
-
                     case 'STEAM': 
                         this.target.applyDamage(fD); this.target.armorBreakTimer = 180; this.target.burnTimer = 180; this.target.burnDmg = fD * 0.05;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:120, life:20, color:'156,163,175' }); break;
@@ -853,6 +833,23 @@
                         this.target.applyDamage(fD); let rt = 150 + this.star*20;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rt, life:15, color:'29,78,216' });
                         this.applyAoe(rt, e => { e.knockback(50 + this.star*15); }); break;
+                    case 'CONDU': 
+                        let wetMult = this.target.wetTimer > 0 ? 2.0 : 1.0;
+                        if(wetMult > 1) visuals.push({ t:'text', text:'激電擴散!', x: this.target.x, y: this.target.y - 25, life: 30, color: '#a855f7' });
+                        this.target.applyDamage(fD * wetMult); 
+                        let cc = enemies.filter(e => e!==this.target && Math.hypot(e.x-this.target.x, e.y-this.target.y)<280);
+                        for(let i=0; i<Math.min(cc.length, 2+this.star); i++) {
+                            let cWM = cc[i].wetTimer > 0 ? 2.0 : 1.0;
+                            cc[i].applyDamage(fD * 0.7 * cWM); 
+                            visuals.push({ t:'bolt', x1:this.target.x, y1:this.target.y, x2:cc[i].x, y2:cc[i].y, life:10, color:'168,85,247' });
+                        } break;
+                    case 'THERM': 
+                        if (this.target.traits.includes('HARD_SKIN') || this.target.traits.includes('SHIELD') || this.target.traits.includes('SUPER_SHIELD') || this.target.traits.includes('TITAN')) {
+                            fD *= 2.0; visuals.push({ t:'text', text:'熱衝擊!', x: this.target.x, y: this.target.y - 25, life: 30, color: '#f97316' });
+                        }
+                        this.target.applyDamage(fD); let rth = 180 + this.star*25;
+                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rth, life:20, color:'249,115,22' });
+                        this.applyAoe(rth, e => { e.applyDamage(fD * 0.8); e.armorBreakTimer = 180; }); break;
                     case 'FSTORM': 
                         this.target.applyDamage(fD); let rf = 150 + this.star*20;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rf, life:25, color:'234,88,12' });
@@ -864,6 +861,10 @@
                         this.target.applyDamage(fD); let rb = 200 + this.star*30;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rb, life:25, color:'224,242,254' });
                         this.applyAoe(rb, e => { e.applyCC('STUN', 45, null); e.applyDamage(fD*0.4); }); break;
+                    case 'SUPER': 
+                        this.target.applyDamage(fD); let rsu = 150 + this.star*20;
+                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rsu, life:20, color:'192,132,252' });
+                        this.applyAoe(rsu, e => { e.armorBreakTimer = 120; e.applyCC('STUN', 20, null); e.applyDamage(fD*0.6); }); break;
                     case 'TSTORM': 
                         this.target.applyDamage(fD); this.target.applyCC('STUN', 15, null);
                         visuals.push({ t:'bolt', x1:this.x, y1:this.y, x2:this.target.x, y2:this.target.y, life:5, color:'132,204,22' }); break;
@@ -904,7 +905,7 @@
         });
     }
 
-    /* ================= 觸控與費用系統 ================= */
+    /* ================= 面板與操作系統 ================= */
     function updateInfoPanel() {
         const info = document.getElementById('infoPanel');
         if (selectedTower) {
@@ -951,18 +952,19 @@
     let upgInterval = null;
     function startUpg(type) { doUpg(type); upgInterval = setInterval(() => doUpg(type), 150); }
     function stopUpg() { clearInterval(upgInterval); }
+    function getNextCost(curr) {
+        let inc = Math.floor(curr * 0.1); if (inc > 20) inc = 20; if (inc < 1) inc = 1; 
+        return curr + inc;
+    }
     function doUpg(type) {
         if(type === 'dmg') { 
             if (gameState.money >= gameState.costDmg && !gameState.isOver) { 
-                gameState.money -= gameState.costDmg; 
-                gameState.costDmg = Math.floor(gameState.costDmg * 1.1);
+                gameState.money -= gameState.costDmg; gameState.costDmg = getNextCost(gameState.costDmg);
                 gameState.globalDmgLv++; updateInfoPanel(); 
             } 
-        } 
-        else { 
+        } else { 
             if (gameState.money >= gameState.costStar && !gameState.isOver) { 
-                gameState.money -= gameState.costStar; 
-                gameState.costStar = Math.floor(gameState.costStar * 1.1);
+                gameState.money -= gameState.costStar; gameState.costStar = getNextCost(gameState.costStar);
                 gameState.summonLv++; updateInfoPanel(); 
             } 
         }
@@ -973,11 +975,8 @@
             let empty = null;
             for(let x=0; x<COLS; x++){ if(!towers.find(t=>t.gridX===x && t.gridY===8)) { empty={x,y:8}; break; } }
             if(empty) {
-                gameState.money -= gameState.costSummon; 
-                gameState.costSummon = Math.floor(gameState.costSummon * 1.1);
-                
-                let rand = Math.random() * 100;
-                let s3 = gameState.summonLv * 1.0, s2 = gameState.summonLv * 2.0, star = 1;
+                gameState.money -= gameState.costSummon; gameState.costSummon = getNextCost(gameState.costSummon);
+                let rand = Math.random() * 100, s3 = gameState.summonLv * 1.0, s2 = gameState.summonLv * 2.0, star = 1;
                 if (rand < s3) star = 3; else if (rand < s3 + s2) star = 2;
                 let t = new Tower(empty.x, empty.y, true); t.star = star; towers.push(t);
                 updateInfoPanel();
@@ -999,10 +998,8 @@
         else if (e.changedTouches && e.changedTouches.length > 0) { cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY; }
         else { cx = e.clientX; cy = e.clientY; }
         if (cx === undefined || cy === undefined) return null;
-        
         let scale = Math.min(rect.width / GAME_W, rect.height / GAME_H);
-        let offsetX = (rect.width - (GAME_W * scale)) / 2;
-        let offsetY = (rect.height - (GAME_H * scale)) / 2;
+        let offsetX = (rect.width - (GAME_W * scale)) / 2, offsetY = (rect.height - (GAME_H * scale)) / 2;
         return { x: (cx - rect.left - offsetX) / scale, y: (cy - rect.top - offsetY) / scale };
     }
 
@@ -1024,13 +1021,10 @@
             if(!pos) { draggedTower.updatePosition(); draggedTower = null; return; }
             let dropX = Math.floor(pos.x / TILE), dropY = Math.floor(pos.y / TILE);
             
-            if(isNaN(dropX) || isNaN(dropY) || dropX < 0 || dropX >= COLS || dropY < 0 || dropY >= ROWS) { 
-                draggedTower.updatePosition(); draggedTower = null; return; 
-            }
+            if(isNaN(dropX) || isNaN(dropY) || dropX < 0 || dropX >= COLS || dropY < 0 || dropY >= ROWS) { draggedTower.updatePosition(); draggedTower = null; return; }
 
             let isClick = (dropX === dragStartX && dropY === dragStartY);
-            let inBoard = dropY >= 0 && dropY <= 6;
-            let inBench = dropY === 8;
+            let inBoard = dropY >= 0 && dropY <= 6, inBench = dropY === 8;
             let targetT = towers.find(t => t.gridX === dropX && t.gridY === dropY && t !== draggedTower);
             let onPath = pathCells.some(c => c.x === dropX && c.y === dropY);
 
@@ -1041,19 +1035,15 @@
                         let newBit = targetT.bitVal | draggedTower.bitVal;
                         if (targetT.type === draggedTower.type) {
                             targetT.star++; targetT.upgradeLv = Math.floor((targetT.upgradeLv + draggedTower.upgradeLv) / 2);
-                            towers = towers.filter(t => t !== draggedTower);
-                            if(selectedTower === draggedTower) selectedTower = targetT;
-                        } 
-                        else if (BIT_TO_KEY[newBit] && BIT_TO_KEY[newBit] !== targetT.type && BIT_TO_KEY[newBit] !== draggedTower.type) {
+                            towers = towers.filter(t => t !== draggedTower); if(selectedTower === draggedTower) selectedTower = targetT;
+                        } else if (BIT_TO_KEY[newBit] && BIT_TO_KEY[newBit] !== targetT.type && BIT_TO_KEY[newBit] !== draggedTower.type) {
                             let nType = BIT_TO_KEY[newBit];
                             if (player.unlockedCombos.includes(nType)) {
                                 targetT.type = nType; targetT.baseStats = ELEMENTS[nType]; targetT.bitVal = newBit;
                                 targetT.star++; targetT.upgradeLv = Math.floor((targetT.upgradeLv + draggedTower.upgradeLv) / 2);
-                                towers = towers.filter(t => t !== draggedTower);
-                                if(selectedTower === draggedTower) selectedTower = targetT;
+                                towers = towers.filter(t => t !== draggedTower); if(selectedTower === draggedTower) selectedTower = targetT;
                             } else swapTowers(targetT, draggedTower);
-                        } 
-                        else swapTowers(targetT, draggedTower);
+                        } else swapTowers(targetT, draggedTower);
                     } else swapTowers(targetT, draggedTower);
                 } else if(inBoard && !onPath) {
                     draggedTower.gridX = dropX; draggedTower.gridY = dropY; draggedTower.isBench = false; draggedTower.updatePosition(); selectedTower = draggedTower;
@@ -1061,21 +1051,19 @@
                     draggedTower.gridX = dropX; draggedTower.gridY = dropY; draggedTower.isBench = true; draggedTower.updatePosition(); selectedTower = draggedTower;
                 } else { draggedTower.updatePosition(); }
             }
-        } catch(err) { console.error(err); } finally { if(draggedTower) draggedTower.updatePosition(); draggedTower = null; updateAuras(); updateInfoPanel(); }
+        } catch(err) {} finally { if(draggedTower) draggedTower.updatePosition(); draggedTower = null; updateAuras(); updateInfoPanel(); }
     }
 
     canvas.addEventListener('pointerdown', handleStart); canvas.addEventListener('pointermove', handleMove); canvas.addEventListener('pointerup', handleEnd);
 
-    /* ================= 地圖生成與控制 ================= */
+    /* ================= 遊戲啟動與結算 ================= */
     function togglePause() { gameState.isPaused = !gameState.isPaused; document.getElementById('pauseBtn').innerText = gameState.isPaused ? '▶️ 繼續' : '⏸️ 暫停'; }
     function leaveGame() { if(confirm("確定要離開嗎？(視為失敗結算)")) { endGame(false); } }
 
     function buildPathFromPoints(points) {
         let p = [];
         for(let i=0; i<points.length-1; i++) {
-            let p1 = points[i], p2 = points[i+1];
-            let dx = Math.sign(p2.x - p1.x), dy = Math.sign(p2.y - p1.y);
-            let cx = p1.x, cy = p1.y;
+            let p1 = points[i], p2 = points[i+1], dx = Math.sign(p2.x - p1.x), dy = Math.sign(p2.y - p1.y), cx = p1.x, cy = p1.y;
             while(cx !== p2.x || cy !== p2.y) { p.push({x: cx, y: cy}); cx += dx; cy += dy; }
         }
         p.push(points[points.length-1]); return p;
@@ -1100,29 +1088,19 @@
     }
 
     function startLevel(lvl) {
-        let diffMulti = 1.0;
-        let limit = 30;
-        initGameConfig({ mode: lvl, diffMulti, lossCond: 'BOARD', limitCount: limit, maxWave: 50, mapPath: getLevelPath(lvl), isStory: true });
+        initGameConfig({ mode: lvl, diffMulti: 1.0, lossCond: 'BOARD', limitCount: 30, maxWave: 50, mapPath: getLevelPath(lvl), isStory: true });
     }
 
     function startFreeMode() {
-        let diffSel = document.getElementById('fmDiff').value;
-        let mapSel = document.getElementById('fmMap').value;
-        let condSel = document.getElementById('fmCond').value;
-        let waveSel = document.getElementById('fmWave').value;
-
+        let diffSel = document.getElementById('fmDiff').value, mapSel = document.getElementById('fmMap').value, condSel = document.getElementById('fmCond').value, waveSel = document.getElementById('fmWave').value;
         let diffMulti = diffSel === 'EASY' ? 0.7 : (diffSel === 'HARD' ? 1.5 : 1.0);
         let limit = diffSel === 'EASY' ? 40 : (diffSel === 'HARD' ? 20 : 30);
-        let maxWave = parseInt(waveSel);
-
-        initGameConfig({ mode: 'random', diffMulti, lossCond: condSel, limitCount: limit, maxWave, mapPath: getLevelPath(mapSel), isStory: false });
+        initGameConfig({ mode: 'random', diffMulti, lossCond: condSel, limitCount: limit, maxWave: parseInt(waveSel), mapPath: getLevelPath(mapSel), isStory: false });
     }
 
     function initGameConfig(config) {
-        document.getElementById('menuMain').classList.add('hidden'); 
-        document.getElementById('menuLevel').classList.add('hidden');
-        document.getElementById('menuFree').classList.add('hidden');
-        document.getElementById('gameScreen').classList.remove('hidden');
+        document.getElementById('menuMain').classList.add('hidden'); document.getElementById('menuLevel').classList.add('hidden');
+        document.getElementById('menuFree').classList.add('hidden'); document.getElementById('gameScreen').classList.remove('hidden');
         
         gameState = { 
             isActive: true, money: 250 + (player.tech.moneyLv*20), wave: 1, frame: 0, 
@@ -1131,24 +1109,17 @@
             limitCount: config.limitCount, maxWave: config.maxWave, isStory: config.isStory, leakCount: 0,
             costSummon: 30, costDmg: 20, costStar: 50
         };
-        
-        enemies = []; towers = []; bullets = []; visuals = []; draggedTower = null; selectedTower = null;
-        setSpeed(1);
+        enemies = []; towers = []; bullets = []; visuals = []; draggedTower = null; selectedTower = null; setSpeed(1);
         
         document.getElementById('maxWaveText').innerText = config.maxWave === 999 ? ' (無盡)' : '/' + config.maxWave;
         document.getElementById('pauseBtn').innerText = '⏸️ 暫停'; 
         
         pathCells = config.mapPath;
-        
-        // 確保非迴圈漏怪地圖終點有座標可抵達
         if (config.lossCond === 'LEAK') {
-            let last = pathCells[pathCells.length-1];
-            let slast = pathCells[pathCells.length-2];
+            let last = pathCells[pathCells.length-1], slast = pathCells[pathCells.length-2];
             pathCells.push({x: last.x + (last.x - slast.x), y: last.y + (last.y - slast.y)});
         }
-
-        gameWorker.postMessage('start');
-        updateInfoPanel(); 
+        gameWorker.postMessage('start'); updateInfoPanel(); 
     }
 
     function endGame(isWin) {
