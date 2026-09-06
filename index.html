@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>英雄元素守塔 - 自由變異紀元</title>
+    <title>英雄元素守塔 - 圖鑑與全階煉金版</title>
     <style>
         :root {
             --bg-dark: #0f172a; --panel-bg: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; --gold: #fbbf24;
         }
-        /* 嚴格禁止全選、複製、長按彈出選單，並消除點擊閃爍 */
         * {
             user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
             -webkit-touch-callout: none; box-sizing: border-box; touch-action: none;
@@ -94,7 +93,20 @@
         .gacha-text { font-size: 24px; font-weight: bold; color: #fbbf24; margin-bottom: 20px; animation: pop 0.5s ease-out; }
         @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
-        /* 自由模式表單樣式 */
+        /* ====== 圖鑑視窗 Modal ====== */
+        #bookModal {
+            position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); z-index: 60;
+            display: flex; flex-direction: column; padding: 15px; box-sizing: border-box;
+        }
+        .book-content {
+            flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-top: 10px;
+        }
+        .book-card {
+            background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px;
+            display: flex; justify-content: space-between; align-items: center; font-size: 14px;
+        }
+        .book-locked { opacity: 0.5; border-color: #ef4444; }
+
         .free-mode-form {
             display:flex; flex-direction:column; gap:10px; text-align:left; color:#cbd5e1; font-size:14px; 
             background:#0f172a; padding:15px; border-radius:8px; border: 1px solid #334155;
@@ -129,8 +141,8 @@
             </div>
             
             <div style="font-size:13px; color:#94a3b8; background:#0f172a; padding:10px; border-radius:8px; line-height: 1.5; margin-top:5px;">
-                ⚠️ <strong>通膨法則</strong>：局內購買與升級費用遞增 10% (最高漲幅 20)。<br>
-                ✨ <strong>位元煉金</strong>：不同塔種只要相加的「屬性元素」符合配方且已解鎖，即可跨階融合！(例如：火捲塔+雷塔 = 天罰塔)
+                📖 <strong>配方查詢</strong>：戰鬥中可點擊上方【📖 圖鑑】隨時查看相剋與合成表！<br>
+                ✨ <strong>全階煉金</strong>：兩座同星級塔疊加，若組合有新配方則融合，若為已有屬性則吸收升星。
             </div>
 
             <hr style="border:1px solid #334155; width:100%; margin: 2px 0;">
@@ -213,11 +225,23 @@
         <button class="btn btn-primary" style="padding:10px 30px;" onclick="document.getElementById('gachaModal').classList.add('hidden')">確定</button>
     </div>
 
+    <!-- 遊戲中圖鑑 Modal -->
+    <div id="bookModal" class="hidden">
+        <h2 style="text-align:center; margin:0; color:#38bdf8;">📖 元素配方與相剋圖鑑</h2>
+        <div style="background:#0f172a; padding:8px; border-radius:6px; font-size:13px; margin-top:8px; border:1px solid #3b82f6;">
+            <strong>⚔️ 相剋環 (200%傷害)</strong>：<br>
+            💧水 ＞ 🔥火 ＞ ❄️冰 ＞ 🌪️風 ＞ ⚡雷 ＞ 💧水
+        </div>
+        <div class="book-content" id="bookListUI"></div>
+        <button class="btn btn-danger" style="padding:10px; margin-top:10px;" onclick="closeBook()">關閉圖鑑</button>
+    </div>
+
     <!-- ================= 遊戲畫面 ================= -->
     <div id="gameScreen" class="screen hidden">
         <div class="game-top-bar">
             <div>💰 $<span id="gameMoney" style="color:var(--gold)">0</span></div>
-            <div id="gameLimitLabel">狀態: <span id="gameMonsterCount" style="color:var(--success)">0/30</span> <span style="font-size:10px;color:#94a3b8">(BOSS=10)</span></div>
+            <div id="gameLimitLabel">狀態: <span id="gameMonsterCount" style="color:var(--success)">0/30</span></div>
+            <button class="btn btn-purple" onclick="openBook()" style="padding:2px 8px; font-size:12px;">📖 圖鑑</button>
         </div>
         <div class="game-sub-bar">
             <div>波數: <span id="gameWave">1</span><span id="maxWaveText">/50</span></div>
@@ -241,7 +265,6 @@
                 <span style="color:#94a3b8; align-self:center; margin-top:10px;">選擇塔以查看屬性技能</span>
             </div>
             <div class="controls-grid">
-                <!-- 【動態費用顯示】 -->
                 <button class="btn btn-success" id="btnSummon" onclick="summonTower()">召喚塔<br>($<span id="uiSummonCost">30</span>)</button>
                 <button class="btn" id="btnUpgDmg" onpointerdown="startUpg('dmg')" onpointerup="stopUpg()" onpointerleave="stopUpg()">⚔️增傷<br>Lv.<span id="uiUpgDmgLv">0</span> ($<span id="uiUpgDmgCost">20</span>)</button>
                 <button class="btn btn-gold" id="btnUpgSummon" onpointerdown="startUpg('summon')" onpointerup="stopUpg()" onpointerleave="stopUpg()">✨高星<br>Lv.<span id="uiUpgSummonLv">0</span> ($<span id="uiUpgSummonCost">50</span>)</button>
@@ -263,7 +286,7 @@
 </div>
 
 <script>
-    /* ================= 完美存檔系統 ================= */
+    /* ================= 存檔 ================= */
     let player = { 
         level: 1, exp: 0, globalGold: 500, maxLevel: 1, endlessRecord: 0,
         tech: { dmgLv: 0, spdLv: 0, moneyLv: 0 },
@@ -334,37 +357,36 @@
         saveData(); updateMenuUI();
     }
 
-    /* ================= 終極位元煉金引擎 (Bitwise Alchemy) ================= */
+    /* ================= 元素與位元字典 ================= */
     // FIRE=1, WATER=2, WIND=4, ELEC=8, ICE=16
     const ELEMENTS = {
-        'FIRE':  { bit: 1, color: '#ef4444', name: '火', dmg: 35, cd: 45, range: 300, isBase: true, recipeStr: '火' },
-        'WATER': { bit: 2, color: '#3b82f6', name: '水', dmg: 20, cd: 30, range: 280, isBase: true, recipeStr: '水' },
-        'WIND':  { bit: 4, color: '#22c55e', name: '風', dmg: 15, cd: 25, range: 350, isBase: true, recipeStr: '風' },
-        'ELEC':  { bit: 8, color: '#eab308', name: '電', dmg: 55, cd: 55, range: 280, isBase: true, recipeStr: '雷' },
-        'ICE':   { bit: 16, color: '#06b6d4', name: '冰', dmg: 25, cd: 40, range: 250, isBase: true, recipeStr: '冰' },
+        'FIRE':  { bit: 1, color: '#ef4444', name: '火', dmg: 35, cd: 45, range: 300, isBase: true, recipeStr: '基礎元素' },
+        'WATER': { bit: 2, color: '#3b82f6', name: '水', dmg: 20, cd: 30, range: 280, isBase: true, recipeStr: '基礎元素' },
+        'WIND':  { bit: 4, color: '#22c55e', name: '風', dmg: 15, cd: 25, range: 350, isBase: true, recipeStr: '基礎元素' },
+        'ELEC':  { bit: 8, color: '#eab308', name: '電', dmg: 55, cd: 55, range: 280, isBase: true, recipeStr: '基礎元素' },
+        'ICE':   { bit: 16, color: '#06b6d4', name: '冰', dmg: 25, cd: 40, range: 250, isBase: true, recipeStr: '基礎元素' },
         
         // T2 雙重
-        'STEAM': { bit: 3, color: '#9ca3af', name: '蒸氣', dmg: 25, cd: 25, range: 310, isBase: false, recipeStr: '水+火' }, 
-        'SLUSH': { bit: 18, color: '#7dd3fc', name: '碎冰', dmg: 30, cd: 40, range: 290, isBase: false, recipeStr: '水+冰' }, 
-        'STORM': { bit: 6, color: '#1d4ed8', name: '暴雨', dmg: 40, cd: 35, range: 310, isBase: false, recipeStr: '水+風' }, 
-        'CONDU': { bit: 10, color: '#a855f7', name: '激電', dmg: 45, cd: 45, range: 300, isBase: false, recipeStr: '水+雷' }, 
-        'THERM': { bit: 17, color: '#f97316', name: '熱震', dmg: 70, cd: 55, range: 280, isBase: false, recipeStr: '火+冰' }, 
-        'FSTORM':{ bit: 5, color: '#ea580c', name: '火捲', dmg: 35, cd: 30, range: 330, isBase: false, recipeStr: '火+風' }, 
-        'PLASM': { bit: 9, color: '#d946ef', name: '電漿', dmg: 110, cd: 60, range: 300, isBase: false, recipeStr: '火+雷' },
-        'BLIZZ': { bit: 20, color: '#e0f2fe', name: '風雪', dmg: 25, cd: 35, range: 360, isBase: false, recipeStr: '冰+風' }, 
-        'SUPER': { bit: 24, color: '#c084fc', name: '超導', dmg: 60, cd: 50, range: 340, isBase: false, recipeStr: '冰+雷' }, 
-        'TSTORM':{ bit: 12, color: '#84cc16', name: '雷暴', dmg: 40, cd: 20, range: 300, isBase: false, recipeStr: '風+雷' },
+        'STEAM': { bit: 3, color: '#9ca3af', name: '蒸氣', dmg: 25, cd: 25, range: 310, isBase: false, recipeStr: '水 ＋ 火' }, 
+        'SLUSH': { bit: 18, color: '#7dd3fc', name: '碎冰', dmg: 30, cd: 40, range: 290, isBase: false, recipeStr: '水 ＋ 冰' }, 
+        'STORM': { bit: 6, color: '#1d4ed8', name: '暴雨', dmg: 40, cd: 35, range: 310, isBase: false, recipeStr: '水 ＋ 風' }, 
+        'CONDU': { bit: 10, color: '#a855f7', name: '激電', dmg: 45, cd: 45, range: 300, isBase: false, recipeStr: '水 ＋ 雷' }, 
+        'THERM': { bit: 17, color: '#f97316', name: '熱震', dmg: 70, cd: 55, range: 280, isBase: false, recipeStr: '火 ＋ 冰' }, 
+        'FSTORM':{ bit: 5, color: '#ea580c', name: '火捲', dmg: 35, cd: 30, range: 330, isBase: false, recipeStr: '火 ＋ 風' }, 
+        'PLASM': { bit: 9, color: '#d946ef', name: '電漿', dmg: 110, cd: 60, range: 300, isBase: false, recipeStr: '火 ＋ 雷' },
+        'BLIZZ': { bit: 20, color: '#e0f2fe', name: '風雪', dmg: 25, cd: 35, range: 360, isBase: false, recipeStr: '冰 ＋ 風' }, 
+        'SUPER': { bit: 24, color: '#c084fc', name: '超導', dmg: 60, cd: 50, range: 340, isBase: false, recipeStr: '冰 ＋ 雷' }, 
+        'TSTORM':{ bit: 12, color: '#84cc16', name: '雷暴', dmg: 40, cd: 20, range: 300, isBase: false, recipeStr: '風 ＋ 雷' },
         
         // T3, T5 終極
-        'MHD':   { bit: 11, color: '#f43f5e', name: '磁流體', dmg: 90, cd: 35, range: 340, isBase: false, recipeStr: '水+火+雷' },
-        'AURORA':{ bit: 28, color: '#67e8f9', name: '極光',  dmg: 80, cd: 30, range: 400, isBase: false, recipeStr: '冰+風+雷' },
-        'SOLAR': { bit: 13, color: '#facc15', name: '天罰',  dmg: 180, cd: 60, range: 360, isBase: false, recipeStr: '火+風+雷' },
-        'CHAOS': { bit: 31, color: '#ffffff', name: '混沌',  dmg: 350, cd: 45, range: 500, isBase: false, recipeStr: '五元全合成' }
+        'MHD':   { bit: 11, color: '#f43f5e', name: '磁流體', dmg: 90, cd: 35, range: 340, isBase: false, recipeStr: '水 ＋ 火 ＋ 雷' },
+        'AURORA':{ bit: 28, color: '#67e8f9', name: '極光',  dmg: 80, cd: 30, range: 400, isBase: false, recipeStr: '冰 ＋ 風 ＋ 雷' },
+        'SOLAR': { bit: 13, color: '#facc15', name: '天罰',  dmg: 180, cd: 60, range: 360, isBase: false, recipeStr: '火 ＋ 風 ＋ 雷' },
+        'CHAOS': { bit: 31, color: '#ffffff', name: '混沌',  dmg: 350, cd: 45, range: 500, isBase: false, recipeStr: '五元全融合 (五屬齊聚)' }
     };
     const BASE_KEYS = ['FIRE', 'WATER', 'WIND', 'ELEC', 'ICE'];
     const COUNTERS = { 'WATER': 'FIRE', 'FIRE': 'ICE', 'ICE': 'WIND', 'WIND': 'ELEC', 'ELEC': 'WATER' };
 
-    // 將二進位轉回塔名
     const BIT_TO_KEY = {};
     for(let k in ELEMENTS) BIT_TO_KEY[ELEMENTS[k].bit] = k;
     const DERIVED_KEYS = Object.keys(ELEMENTS).filter(k => !ELEMENTS[k].isBase);
@@ -400,17 +422,37 @@
         modal.classList.remove('hidden');
     }
 
-    /* ================= 遊戲核心與通膨系統 ================= */
+    function openBook() {
+        let list = document.getElementById('bookListUI');
+        list.innerHTML = '';
+        for (let k of DERIVED_KEYS) {
+            let el = ELEMENTS[k];
+            let unlocked = player.unlockedCombos.includes(k);
+            let div = document.createElement('div');
+            div.className = 'book-card' + (unlocked ? '' : ' book-locked');
+            div.innerHTML = `
+                <div>
+                    <strong style="color:${el.color}; font-size:16px;">${el.name}塔</strong> 
+                    <span style="font-size:12px; color:#94a3b8;">(${el.recipeStr})</span>
+                </div>
+                <div>${unlocked ? '<span style="color:#22c55e;">已解鎖</span>' : '<span style="color:#ef4444;">🔒 未解鎖</span>'}</div>
+            `;
+            list.appendChild(div);
+        }
+        document.getElementById('bookModal').classList.remove('hidden');
+    }
+    function closeBook() { document.getElementById('bookModal').classList.add('hidden'); }
+
+    /* ================= 遊戲核心與通膨 ================= */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const GAME_W = 720, GAME_H = 1080, TILE = 120, COLS = 6, ROWS = 9;
     
-    // 【動態通膨系統】：計算下一階費用 (增加10%，最高加20，最少加1)
-    function getNextCost(currentCost) {
-        let inc = Math.floor(currentCost * 0.1);
-        if (inc > 20) inc = 20;
+    function getNextCost(curr) {
+        let inc = Math.floor(curr * 0.1);
+        if (inc > 20) inc = 20; // 【上限20】
         if (inc < 1) inc = 1; 
-        return currentCost + inc;
+        return curr + inc;
     }
 
     let gameState = { 
@@ -486,7 +528,6 @@
             return alive; 
         });
 
-        // 敗北條件
         if (gameState.lossCond === 'BOARD') {
             let mCount = enemies.reduce((sum, e) => sum + (e.isBoss ? 10 : 1), 0);
             if (mCount >= gameState.limitCount) { endGame(false); return; }
@@ -494,7 +535,6 @@
             if (gameState.leakCount >= gameState.limitCount) { endGame(false); return; }
         }
         
-        // 勝利條件
         if (gameState.wave >= gameState.maxWave && gameState.bossSpawned && enemies.length === 0) { endGame(true); return; }
 
         towers.forEach(t => { if(t !== draggedTower) t.update(); });
@@ -514,7 +554,7 @@
         
         ctx.fillStyle = '#0b1120'; ctx.fillRect(0, 7*TILE, GAME_W, TILE);
         ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText("⬇️ 備戰區 (同星疊加可升星或融合) ⬇️", GAME_W/2, 7*TILE + TILE/2);
+        ctx.fillText("⬇️ 備戰區 (同星相疊可升星或煉金) ⬇️", GAME_W/2, 7*TILE + TILE/2);
         
         ctx.strokeStyle = '#334155'; ctx.lineWidth = 4;
         for(let x=0; x<COLS; x++) ctx.strokeRect(x*TILE, 8*TILE, TILE, TILE);
@@ -556,11 +596,11 @@
             let mCount = enemies.reduce((sum, e) => sum + (e.isBoss ? 10 : 1), 0);
             cEl.innerText = `${mCount}/${gameState.limitCount}`;
             cEl.style.color = mCount >= gameState.limitCount * 0.7 ? 'var(--danger)' : 'var(--success)';
-            document.getElementById('gameLimitLabel').innerHTML = `場上: <span id="gameMonsterCount" style="color:${cEl.style.color}">${mCount}/${gameState.limitCount}</span> <span style="font-size:11px;color:#94a3b8">(BOSS=10)</span>`;
+            document.getElementById('gameLimitLabel').innerHTML = `場上: <span id="gameMonsterCount" style="color:${cEl.style.color}">${mCount}/${gameState.limitCount}</span>`;
         } else {
             cEl.innerText = `${gameState.leakCount}/${gameState.limitCount}`;
             cEl.style.color = gameState.leakCount >= gameState.limitCount * 0.7 ? 'var(--danger)' : 'var(--success)';
-            document.getElementById('gameLimitLabel').innerHTML = `漏怪: <span id="gameMonsterCount" style="color:${cEl.style.color}">${gameState.leakCount}/${gameState.limitCount}</span> <span style="font-size:11px;color:#94a3b8">(BOSS=10)</span>`;
+            document.getElementById('gameLimitLabel').innerHTML = `漏怪: <span id="gameMonsterCount" style="color:${cEl.style.color}">${gameState.leakCount}/${gameState.limitCount}</span>`;
         }
         
         document.getElementById('uiUpgDmgLv').innerText = gameState.globalDmgLv;
@@ -570,7 +610,7 @@
         document.getElementById('uiSummonCost').innerText = gameState.costSummon;
     }
 
-    /* ================= 變異怪獸系統 ================= */
+    /* ================= 變異怪獸 ================= */
     class Enemy {
         constructor(wave, archetype) {
             this.pathIndex = 0; this.archetype = archetype; this.isBoss = (archetype === 'BOSS');
@@ -905,7 +945,7 @@
         });
     }
 
-    /* ================= 面板與操作系統 ================= */
+    /* ================= 介面顯示 ================= */
     function updateInfoPanel() {
         const info = document.getElementById('infoPanel');
         if (selectedTower) {
@@ -952,10 +992,6 @@
     let upgInterval = null;
     function startUpg(type) { doUpg(type); upgInterval = setInterval(() => doUpg(type), 150); }
     function stopUpg() { clearInterval(upgInterval); }
-    function getNextCost(curr) {
-        let inc = Math.floor(curr * 0.1); if (inc > 20) inc = 20; if (inc < 1) inc = 1; 
-        return curr + inc;
-    }
     function doUpg(type) {
         if(type === 'dmg') { 
             if (gameState.money >= gameState.costDmg && !gameState.isOver) { 
@@ -1014,6 +1050,8 @@
         } catch(err) {}
     }
     function handleMove(e) { try { if(draggedTower) { let pos = getEventCoords(e); if(pos) { mouseX = pos.x; mouseY = pos.y; } } } catch(err){} }
+    
+    /* ================= 【位元煉金引擎核心修復】 ================= */
     function handleEnd(e) {
         try {
             if(!draggedTower) return;
@@ -1021,7 +1059,9 @@
             if(!pos) { draggedTower.updatePosition(); draggedTower = null; return; }
             let dropX = Math.floor(pos.x / TILE), dropY = Math.floor(pos.y / TILE);
             
-            if(isNaN(dropX) || isNaN(dropY) || dropX < 0 || dropX >= COLS || dropY < 0 || dropY >= ROWS) { draggedTower.updatePosition(); draggedTower = null; return; }
+            if(isNaN(dropX) || isNaN(dropY) || dropX < 0 || dropX >= COLS || dropY < 0 || dropY >= ROWS) { 
+                draggedTower.updatePosition(); draggedTower = null; return; 
+            }
 
             let isClick = (dropX === dragStartX && dropY === dragStartY);
             let inBoard = dropY >= 0 && dropY <= 6, inBench = dropY === 8;
@@ -1031,32 +1071,45 @@
             if(isClick) { selectedTower = draggedTower; updateInfoPanel(); } 
             else {
                 if(targetT) {
+                    // 必須同星級才能進行操作
                     if(targetT.star === draggedTower.star) {
-                        let newBit = targetT.bitVal | draggedTower.bitVal;
-                        if (targetT.type === draggedTower.type) {
-                            targetT.star++; targetT.upgradeLv = Math.floor((targetT.upgradeLv + draggedTower.upgradeLv) / 2);
-                            towers = towers.filter(t => t !== draggedTower); if(selectedTower === draggedTower) selectedTower = targetT;
-                        } else if (BIT_TO_KEY[newBit] && BIT_TO_KEY[newBit] !== targetT.type && BIT_TO_KEY[newBit] !== draggedTower.type) {
-                            let nType = BIT_TO_KEY[newBit];
+                        let combinedBit = targetT.bitVal | draggedTower.bitVal;
+                        
+                        // 情況 A：兩者相加能組成新配方 (例如 雷暴12 + 火1 = 天罰13)
+                        if (BIT_TO_KEY[combinedBit] && combinedBit !== targetT.bitVal && combinedBit !== draggedTower.bitVal) {
+                            let nType = BIT_TO_KEY[combinedBit];
                             if (player.unlockedCombos.includes(nType)) {
-                                targetT.type = nType; targetT.baseStats = ELEMENTS[nType]; targetT.bitVal = newBit;
+                                targetT.type = nType; targetT.baseStats = ELEMENTS[nType]; targetT.bitVal = combinedBit;
                                 targetT.star++; targetT.upgradeLv = Math.floor((targetT.upgradeLv + draggedTower.upgradeLv) / 2);
-                                towers = towers.filter(t => t !== draggedTower); if(selectedTower === draggedTower) selectedTower = targetT;
-                            } else swapTowers(targetT, draggedTower);
-                        } else swapTowers(targetT, draggedTower);
-                    } else swapTowers(targetT, draggedTower);
+                                towers = towers.filter(t => t !== draggedTower);
+                                if(selectedTower === draggedTower) selectedTower = targetT;
+                            } else {
+                                // 配方尚未解鎖，安靜交換
+                                swapTowers(targetT, draggedTower);
+                            }
+                        } 
+                        // 情況 B：吸收相同屬性升星，或肥料已經包含在目標中 (例如 拿風 餵給 雷暴)
+                        else {
+                            targetT.star++; targetT.upgradeLv = Math.floor((targetT.upgradeLv + draggedTower.upgradeLv) / 2);
+                            towers = towers.filter(t => t !== draggedTower);
+                            if(selectedTower === draggedTower) selectedTower = targetT;
+                        }
+                    } else {
+                        // 不同星級直接交換位置
+                        swapTowers(targetT, draggedTower);
+                    }
                 } else if(inBoard && !onPath) {
                     draggedTower.gridX = dropX; draggedTower.gridY = dropY; draggedTower.isBench = false; draggedTower.updatePosition(); selectedTower = draggedTower;
                 } else if(inBench) {
                     draggedTower.gridX = dropX; draggedTower.gridY = dropY; draggedTower.isBench = true; draggedTower.updatePosition(); selectedTower = draggedTower;
                 } else { draggedTower.updatePosition(); }
             }
-        } catch(err) {} finally { if(draggedTower) draggedTower.updatePosition(); draggedTower = null; updateAuras(); updateInfoPanel(); }
+        } catch(err) { console.error(err); } finally { if(draggedTower) draggedTower.updatePosition(); draggedTower = null; updateAuras(); updateInfoPanel(); }
     }
 
     canvas.addEventListener('pointerdown', handleStart); canvas.addEventListener('pointermove', handleMove); canvas.addEventListener('pointerup', handleEnd);
 
-    /* ================= 遊戲啟動與結算 ================= */
+    /* ================= 關卡路徑配置 ================= */
     function togglePause() { gameState.isPaused = !gameState.isPaused; document.getElementById('pauseBtn').innerText = gameState.isPaused ? '▶️ 繼續' : '⏸️ 暫停'; }
     function leaveGame() { if(confirm("確定要離開嗎？(視為失敗結算)")) { endGame(false); } }
 
@@ -1095,12 +1148,14 @@
         let diffSel = document.getElementById('fmDiff').value, mapSel = document.getElementById('fmMap').value, condSel = document.getElementById('fmCond').value, waveSel = document.getElementById('fmWave').value;
         let diffMulti = diffSel === 'EASY' ? 0.7 : (diffSel === 'HARD' ? 1.5 : 1.0);
         let limit = diffSel === 'EASY' ? 40 : (diffSel === 'HARD' ? 20 : 30);
-        initGameConfig({ mode: 'random', diffMulti, lossCond: condSel, limitCount: limit, maxWave: parseInt(waveSel), mapPath: getLevelPath(mapSel), isStory: false });
+        initGameConfig({ mode: 'free', diffMulti, lossCond: condSel, limitCount: limit, maxWave: parseInt(waveSel), mapPath: getLevelPath(mapSel), isStory: false });
     }
 
     function initGameConfig(config) {
-        document.getElementById('menuMain').classList.add('hidden'); document.getElementById('menuLevel').classList.add('hidden');
-        document.getElementById('menuFree').classList.add('hidden'); document.getElementById('gameScreen').classList.remove('hidden');
+        document.getElementById('menuMain').classList.add('hidden'); 
+        document.getElementById('menuLevel').classList.add('hidden');
+        document.getElementById('menuFree').classList.add('hidden');
+        document.getElementById('gameScreen').classList.remove('hidden');
         
         gameState = { 
             isActive: true, money: 250 + (player.tech.moneyLv*20), wave: 1, frame: 0, 
