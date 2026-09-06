@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>英雄元素守塔 - 無盡變異紀元</title>
+    <title>英雄元素守塔 - 永久存檔版</title>
     <style>
         :root {
             --bg-dark: #0f172a; --panel-bg: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; --gold: #fbbf24;
@@ -37,7 +37,7 @@
         .btn-gold { background-color: #d97706; }
         .btn-purple { background-color: #9333ea; }
 
-        /* ====== 首頁 & 扭蛋 ====== */
+        /* ====== 首頁 ====== */
         .header-card {
             background: var(--panel-bg); padding: 15px; border-radius: 0 0 15px 15px; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; border-bottom: 2px solid #334155; flex-shrink: 0;
@@ -209,7 +209,7 @@
 </div>
 
 <script>
-    /* ================= 存檔與 UI ================= */
+    /* ================= 完美繼承存檔系統 ================= */
     let player = { 
         level: 1, exp: 0, globalGold: 200, maxLevel: 1, 
         endlessRecord: 0,
@@ -218,14 +218,31 @@
     };
 
     function loadData() { 
-        const s = localStorage.getItem('heroTD_v11'); 
-        if(s) player = {...player, ...JSON.parse(s)}; 
+        // 尋找過去所有的舊紀錄並自動升級，確保玩家心血永不消失！
+        const possibleKeys = ['heroTD_save_data', 'heroTD_v11', 'heroTD_v10', 'heroTD_v9', 'heroTD_v8', 'heroTD_v7', 'heroTD_v6', 'heroTD_save'];
+        let loadedStr = null;
+        for (let key of possibleKeys) {
+            loadedStr = localStorage.getItem(key);
+            if (loadedStr) break;
+        }
+
+        if(loadedStr) {
+            player = {...player, ...JSON.parse(loadedStr)}; 
+        }
+        
+        // 補齊舊版可能缺少的屬性
         if(!player.relics) player.relics = { critRate: 0, critDmg: 0, bossDmg: 0 };
         if(!player.unlockedCombos) player.unlockedCombos = [];
         if(!player.endlessRecord) player.endlessRecord = 0;
+        
         updateMenuUI(); 
     }
-    function saveData() { localStorage.setItem('heroTD_v11', JSON.stringify(player)); }
+    
+    function saveData() { 
+        // 統一存檔命名，以後不再更改
+        localStorage.setItem('heroTD_save_data', JSON.stringify(player)); 
+    }
+
     function getMaxExp() { return 100 + (player.level - 1) * 50; }
 
     function updateMenuUI() {
@@ -336,7 +353,7 @@
         modal.classList.remove('hidden');
     }
 
-    /* ================= Web Worker 引擎 ================= */
+    /* ================= 遊戲核心引擎 ================= */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const GAME_W = 720, GAME_H = 1080, TILE = 120, COLS = 6, ROWS = 9;
@@ -346,6 +363,7 @@
     let draggedTower = null, selectedTower = null;
     let dragStartX = 0, dragStartY = 0, mouseX = 0, mouseY = 0;
 
+    // Web Worker 背景守護
     const workerCode = `
         let timer = null;
         self.onmessage = function(e) {
@@ -388,7 +406,16 @@
             if (gameState.frame % spInt === 0) enemies.push(new Enemy(gameState.wave, false));
         }
         
-        enemies = enemies.filter(e => { let a = e.update(); return a && e.hp>0; });
+        // 【關鍵修復】: 中央處理怪物死亡並結算金錢與跳錢特效
+        enemies = enemies.filter(e => { 
+            e.update(); 
+            if (e.hp <= 0) {
+                gameState.money += e.reward;
+                visuals.push({ t:'text', text:'+$'+e.reward, x: e.x, y: e.y - 20, life: 25, color: '#fbbf24' });
+                return false;
+            }
+            return true;
+        });
 
         let mCount = enemies.reduce((sum, e) => sum + (e.isBoss ? 10 : 1), 0);
         if (mCount >= 30) { endGame(false); return; }
@@ -459,14 +486,13 @@
         document.getElementById('uiUpgSummonCost').innerText = 50 + gameState.summonLv * 20;
     }
 
-    /* ================= 變異怪獸系統 ================= */
+    /* ================= 遊戲物件 ================= */
     class Enemy {
         constructor(wave, isBoss = false) {
             this.pathIndex = 0; this.isBoss = isBoss;
             this.x = pathCells[0].x * TILE + TILE/2; this.y = pathCells[0].y * TILE + TILE/2;
             this.slowTimer = 0; this.slowRatio = 1; this.stunTimer = 0; this.burnTimer = 0; this.burnDmg = 0; this.armorBreakTimer = 0;
             
-            // 多重變異系統
             this.traits = [];
             if(wave >= 11) this.traits.push('HARD_SKIN');
             if(wave >= 21) this.traits.push('CC_RESIST');
@@ -484,13 +510,13 @@
                 this.maxHp = 1000 + wave * 400 * (1 + diffM*0.1) + Math.pow(wave, 2.2) * 15;
                 this.hp = this.maxHp;
                 this.baseSpeed = 0.9 + (wave * 0.015);
-                this.radius = 50; this.reward = 100;
+                this.radius = 45; this.reward = 100;
                 this.color = ELEMENTS[this.bossType].color;
             } else {
                 this.maxHp = 60 + wave * 45 * (1 + diffM*0.1) + Math.pow(wave, 1.7) * 5;
                 this.hp = this.maxHp;
                 this.baseSpeed = 1.8 + (wave * 0.025);
-                this.radius = 30; this.reward = 5 + Math.floor(wave / 5);
+                this.radius = 24; this.reward = 5 + Math.floor(wave / 5);
                 this.color = '#a855f7';
             }
             if(this.traits.includes('SWIFT')) this.baseSpeed *= 1.4;
@@ -533,20 +559,21 @@
             }
 
             if (this.armorBreakTimer > 0) this.armorBreakTimer--;
-            if (this.stunTimer > 0) { this.stunTimer--; return this.hp > 0; }
-
+            
             let nextIndex = (this.pathIndex + 1) % pathCells.length;
             let tg = pathCells[nextIndex];
+            
+            if (this.stunTimer > 0) { this.stunTimer--; return; }
+
             let spd = this.slowTimer > 0 ? this.baseSpeed * this.slowRatio : this.baseSpeed;
             if(this.slowTimer > 0) this.slowTimer--;
 
             let tx = tg.x * TILE + TILE/2, ty = tg.y * TILE + TILE/2;
             let dx = tx - this.x, dy = ty - this.y, dist = Math.hypot(dx, dy);
 
-            if (dist > TILE * 2) { this.x = tx; this.y = ty; this.pathIndex = nextIndex; return this.hp > 0; }
+            if (dist > TILE * 2) { this.x = tx; this.y = ty; this.pathIndex = nextIndex; return; }
             if (dist < spd) { this.x = tx; this.y = ty; this.pathIndex = nextIndex; } 
             else { this.x += (dx/dist)*spd; this.y += (dy/dist)*spd; }
-            return this.hp > 0;
         }
         
         draw() {
@@ -556,7 +583,6 @@
             if(this.armorBreakTimer > 0) { ctx.strokeStyle = '#f97316'; ctx.lineWidth = 5; ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]);}
             else if(this.isBoss) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.stroke(); }
             
-            // 繪製抗性標籤
             if(this.traits.length > 0) {
                 let icons = "";
                 if(this.traits.includes('TITAN')) icons = "💀";
@@ -582,7 +608,6 @@
         }
     }
 
-    /* ================= 滿版方形防禦塔 ================= */
     class Tower {
         constructor(gx, gy, isBench) {
             this.gridX = gx; this.gridY = gy; this.isBench = isBench;
@@ -617,23 +642,12 @@
             }
         }
         draw(dx = this.x, dy = this.y) {
-            // 方形底座 (110x110)
-            let s = TILE - 10;
-            let rx = dx - s/2, ry = dy - s/2;
+            let s = TILE - 10; let rx = dx - s/2, ry = dy - s/2;
+            ctx.fillStyle = this.isBench ? '#334155' : '#1e293b'; ctx.fillRect(rx, ry, s, s);
+            if (this === selectedTower && !draggedTower) { ctx.strokeStyle='#fbbf24'; ctx.lineWidth=6; ctx.strokeRect(rx-3, ry-3, s+6, s+6); }
+            if (this.fireBuff > 1 && !this.isBench) { ctx.fillStyle='rgba(239, 68, 68, 0.3)'; ctx.fillRect(rx, ry, s, s); }
             
-            ctx.fillStyle = this.isBench ? '#334155' : '#1e293b'; 
-            ctx.fillRect(rx, ry, s, s);
-            
-            if (this === selectedTower && !draggedTower) { 
-                ctx.strokeStyle='#fbbf24'; ctx.lineWidth=6; ctx.strokeRect(rx-3, ry-3, s+6, s+6); 
-            }
-            if (this.fireBuff > 1 && !this.isBench) { 
-                ctx.fillStyle='rgba(239, 68, 68, 0.3)'; ctx.fillRect(rx, ry, s, s); 
-            }
-            
-            // 方形核心
-            ctx.fillStyle = this.baseStats.color; 
-            ctx.fillRect(rx + 10, ry + 10, s - 20, s - 20);
+            ctx.fillStyle = this.baseStats.color; ctx.fillRect(rx + 10, ry + 10, s - 20, s - 20);
             
             ctx.fillStyle = 'white'; ctx.shadowColor = 'black'; ctx.shadowBlur = 4; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
             ctx.font = 'bold 26px sans-serif'; ctx.textAlign='left'; ctx.fillText('★'+this.star, rx + 15, ry + 35);
@@ -657,7 +671,6 @@
             let dx = this.target.x-this.x, dy = this.target.y-this.y, dist = Math.hypot(dx, dy);
             if(dist < this.speed + this.target.radius) {
                 
-                // 閃避判定
                 if (this.target.traits.includes('EVASION') && Math.random() < 0.2) {
                     visuals.push({ t:'text', text:'閃避', x: this.target.x, y: this.target.y, life: 20, color: '#94a3b8' });
                     return false;
@@ -748,7 +761,7 @@
         });
     }
 
-    /* ================= 觸控介面 ================= */
+    /* ================= 介面顯示 ================= */
     function updateInfoPanel() {
         const info = document.getElementById('infoPanel');
         if (selectedTower) {
@@ -886,10 +899,7 @@
         } catch(err) { console.error(err); } finally { if(draggedTower) draggedTower.updatePosition(); draggedTower = null; updateAuras(); updateInfoPanel(); }
     }
 
-    canvas.addEventListener('mousedown', handleStart); canvas.addEventListener('mousemove', handleMove); canvas.addEventListener('mouseup', handleEnd);
-    canvas.addEventListener('touchstart', (e)=>{ e.preventDefault(); handleStart(e); }, {passive:false});
-    canvas.addEventListener('touchmove', (e)=>{ e.preventDefault(); handleMove(e); }, {passive:false});
-    canvas.addEventListener('touchend', (e)=>{ e.preventDefault(); handleEnd(e); }, {passive:false});
+    canvas.addEventListener('pointerdown', handleStart); canvas.addEventListener('pointermove', handleMove); canvas.addEventListener('pointerup', handleEnd);
 
     /* ================= 關卡路徑配置 (6x7戰鬥區) ================= */
     function togglePause() { gameState.isPaused = !gameState.isPaused; document.getElementById('pauseBtn').innerText = gameState.isPaused ? '▶️ 繼續' : '⏸️ 暫停'; }
@@ -913,7 +923,8 @@
         else if(lvl===3) pts=[{x:0,y:0},{x:0,y:6},{x:2,y:6},{x:2,y:1},{x:3,y:1},{x:3,y:6},{x:5,y:6},{x:5,y:0}];
         else if(lvl===4) pts=[{x:0,y:0},{x:5,y:0},{x:5,y:6},{x:0,y:6},{x:0,y:2},{x:3,y:2},{x:3,y:4},{x:2,y:4}];
         else if(lvl===5) pts=[{x:0,y:6},{x:0,y:0},{x:2,y:0},{x:2,y:4},{x:3,y:4},{x:3,y:0},{x:5,y:0},{x:5,y:6}];
-        else if(lvl===6) pts=[{x:0,y:0},{x:4,y:0},{x:4,y:2},{x:1,y:2},{x:1,y:4},{x:4,y:4},{x:4,y:6},{x:0,y:6}];
+        // 【修復】關卡 6: 梳子型地圖，留出大量建塔空間
+        else if(lvl===6) pts=[{x:0,y:0},{x:5,y:0},{x:5,y:2},{x:1,y:2},{x:1,y:4},{x:5,y:4},{x:5,y:6},{x:0,y:6}];
         else if(lvl===7) pts=[{x:0,y:0},{x:2,y:0},{x:2,y:2},{x:5,y:2},{x:5,y:4},{x:2,y:4},{x:2,y:6},{x:5,y:6}];
         else if(lvl===8) pts=[{x:0,y:6},{x:5,y:6},{x:5,y:4},{x:1,y:4},{x:1,y:2},{x:5,y:2},{x:5,y:0},{x:0,y:0}];
         else if(lvl===9) pts=[{x:2,y:0},{x:2,y:6},{x:3,y:6},{x:3,y:0}];
