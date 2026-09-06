@@ -8,7 +8,6 @@
         :root {
             --bg-dark: #0f172a; --panel-bg: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; --gold: #fbbf24;
         }
-        /* 嚴格禁止全選、複製、長按彈出選單，並消除點擊閃爍 */
         * {
             user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
             -webkit-touch-callout: none; box-sizing: border-box; touch-action: none;
@@ -39,7 +38,6 @@
         .btn-gold { background-color: #d97706; }
         .btn-purple { background-color: #9333ea; }
 
-        /* ====== 首頁 ====== */
         .header-card {
             background: var(--panel-bg); padding: 15px; border-radius: 0 0 15px 15px; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; border-bottom: 2px solid #334155; flex-shrink: 0;
@@ -54,7 +52,6 @@
         .relic-box { background: #0f172a; border: 1px solid #3b82f6; border-radius: 8px; padding: 10px; font-size: 14px; color: #cbd5e1; }
         .relic-box span { color: #fbbf24; font-weight: bold; }
 
-        /* ====== 遊戲UI ====== */
         .game-top-bar {
             flex-shrink: 0; background: var(--panel-bg); display: flex; justify-content: space-between; 
             align-items: center; padding: 8px 12px; font-size: 15px; font-weight: bold; z-index: 5;
@@ -95,7 +92,7 @@
         @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
 <div id="app">
     <!-- ================= 首頁 ================= -->
@@ -120,7 +117,7 @@
             
             <div style="font-size:13px; color:#94a3b8; background:#0f172a; padding:10px; border-radius:8px; line-height: 1.5; margin-top:5px;">
                 ⚔️ <strong>完美相剋環(2倍傷)</strong>：💧＞🔥＞❄️＞🌪️＞⚡＞💧<br>
-                ✨ <strong>全階煉金</strong>：基礎塔可疊加產生【二階衍生】。部分二階塔配上特定基礎塔，更能融合出毀滅性的【三/五階終極塔】！
+                ✨ <strong>全階煉金</strong>：星級相同即可升級。不同屬性疊加可合成【高階衍生】(需先解鎖)！
             </div>
 
             <hr style="border:1px solid #334155; width:100%; margin: 2px 0;">
@@ -209,9 +206,9 @@
 </div>
 
 <script>
-    /* ================= 存檔 ================= */
+    /* ================= 完美存檔繼承系統 ================= */
     let player = { 
-        level: 1, exp: 0, globalGold: 500, maxLevel: 1, endlessRecord: 0,
+        level: 1, exp: 0, globalGold: 200, maxLevel: 1, endlessRecord: 0,
         tech: { dmgLv: 0, spdLv: 0, moneyLv: 0 },
         unlockedCombos: [], relics: { critRate: 0, critDmg: 0, bossDmg: 0 }
     };
@@ -274,8 +271,7 @@
         saveData(); updateMenuUI();
     }
 
-    /* ================= 終極相剋與位元煉金系統 ================= */
-    // 使用 Bitmask 來完美處理任意塔的合成
+    /* ================= 終極位元煉金系統 ================= */
     // FIRE=1, WATER=2, WIND=4, ELEC=8, ICE=16
     const ELEMENTS = {
         'FIRE':  { bit: 1, color: '#ef4444', name: '火', dmg: 35, cd: 45, range: 300, isBase: true, recipeStr: '火' },
@@ -284,7 +280,7 @@
         'ELEC':  { bit: 8, color: '#eab308', name: '電', dmg: 55, cd: 55, range: 280, isBase: true, recipeStr: '雷' },
         'ICE':   { bit: 16, color: '#06b6d4', name: '冰', dmg: 25, cd: 40, range: 250, isBase: true, recipeStr: '冰' },
         
-        // 雙元素 (T2)
+        // T2 衍生
         'STEAM': { bit: 3, color: '#9ca3af', name: '蒸氣', dmg: 25, cd: 25, range: 310, isBase: false, recipeStr: '水+火' }, 
         'SLUSH': { bit: 18, color: '#7dd3fc', name: '碎冰', dmg: 30, cd: 40, range: 290, isBase: false, recipeStr: '水+冰' }, 
         'STORM': { bit: 6, color: '#1d4ed8', name: '暴雨', dmg: 40, cd: 35, range: 310, isBase: false, recipeStr: '水+風' }, 
@@ -296,11 +292,11 @@
         'SUPER': { bit: 24, color: '#c084fc', name: '超導', dmg: 60, cd: 50, range: 340, isBase: false, recipeStr: '冰+雷' }, 
         'TSTORM':{ bit: 12, color: '#84cc16', name: '雷暴', dmg: 40, cd: 20, range: 300, isBase: false, recipeStr: '風+雷' },
         
-        // 三元素與五元素 (T3, T5)
-        'MHD':   { bit: 11, color: '#f43f5e', name: '磁流體', dmg: 90, cd: 40, range: 340, isBase: false, recipeStr: '水+火+雷' },
+        // T3, T5 終極
+        'MHD':   { bit: 11, color: '#f43f5e', name: '磁流體', dmg: 90, cd: 35, range: 340, isBase: false, recipeStr: '水+火+雷' },
         'AURORA':{ bit: 28, color: '#67e8f9', name: '極光',  dmg: 80, cd: 30, range: 400, isBase: false, recipeStr: '冰+風+雷' },
-        'SOLAR': { bit: 13, color: '#facc15', name: '天罰',  dmg: 180, cd: 65, range: 360, isBase: false, recipeStr: '火+風+雷' },
-        'CHAOS': { bit: 31, color: '#ffffff', name: '混沌',  dmg: 350, cd: 50, range: 500, isBase: false, recipeStr: '五元全合成' }
+        'SOLAR': { bit: 13, color: '#facc15', name: '天罰',  dmg: 180, cd: 60, range: 360, isBase: false, recipeStr: '火+風+雷' },
+        'CHAOS': { bit: 31, color: '#ffffff', name: '混沌',  dmg: 350, cd: 45, range: 500, isBase: false, recipeStr: '五元歸一' }
     };
     const BASE_KEYS = ['FIRE', 'WATER', 'WIND', 'ELEC', 'ICE'];
     const COUNTERS = { 'WATER': 'FIRE', 'FIRE': 'ICE', 'ICE': 'WIND', 'WIND': 'ELEC', 'ELEC': 'WATER' };
@@ -340,7 +336,7 @@
         modal.classList.remove('hidden');
     }
 
-    /* ================= Web Worker 引擎 ================= */
+    /* ================= Web Worker 背景守護 ================= */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const GAME_W = 720, GAME_H = 1080, TILE = 120, COLS = 6, ROWS = 9;
@@ -385,7 +381,6 @@
             gameState.wave++; gameState.bossSpawned = false;
         }
 
-        // 引入全新波數特化怪獸
         let arch = 'NORMAL';
         if (gameState.wave % 10 === 0) {
             if (!gameState.bossSpawned) { enemies.push(new Enemy(gameState.wave, 'BOSS')); gameState.bossSpawned = true; }
@@ -436,7 +431,7 @@
         
         ctx.fillStyle = '#0b1120'; ctx.fillRect(0, 7*TILE, GAME_W, TILE);
         ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText("⬇️ 備戰區 (同星級疊加) ⬇️", GAME_W/2, 7*TILE + TILE/2);
+        ctx.fillText("⬇️ 備戰區 (同星疊加/無配方則交換) ⬇️", GAME_W/2, 7*TILE + TILE/2);
         
         ctx.strokeStyle = '#334155'; ctx.lineWidth = 4;
         for(let x=0; x<COLS; x++) ctx.strokeRect(x*TILE, 8*TILE, TILE, TILE);
@@ -484,7 +479,7 @@
         document.getElementById('uiUpgSummonCost').innerText = 50 + gameState.summonLv * 20;
     }
 
-    /* ================= 變異怪獸系統 ================= */
+    /* ================= 遊戲物件 ================= */
     class Enemy {
         constructor(wave, archetype) {
             this.pathIndex = 0; this.archetype = archetype; this.isBoss = (archetype === 'BOSS');
@@ -492,11 +487,9 @@
             this.slowTimer = 0; this.slowRatio = 1; this.stunTimer = 0; this.burnTimer = 0; this.burnDmg = 0; this.armorBreakTimer = 0;
             this.wetTimer = 0;
 
-            // 全怪獸隨機屬性
             this.elementType = BASE_KEYS[Math.floor(Math.random() * BASE_KEYS.length)];
             
             this.traits = [];
-            // 無盡模式自然變異
             if(wave >= 11) this.traits.push('HARD_SKIN');
             if(wave >= 21) this.traits.push('CC_RESIST');
             if(wave >= 41) this.traits.push('REGEN');
@@ -506,12 +499,10 @@
             if(wave >= 81) this.traits.push('SUPER_SHIELD');
             if(wave >= 100) this.traits.push('TITAN');
 
-            // 特化怪獸強制寫入特徵
             if (archetype === 'ARMORED') this.traits.push('HARD_SKIN');
             if (archetype === 'SHIELDED') this.traits.push('SHIELD');
             if (archetype === 'SPRINTER') this.traits.push('SWIFT');
 
-            // 確保特徵唯一
             this.traits = [...new Set(this.traits)];
 
             let diffM = (gameState.mode === 'random') ? 5 : gameState.mode; 
@@ -534,6 +525,7 @@
                 this.radius = this.radius || 24; this.reward = 5 + Math.floor(wave / 5);
             }
             this.hp = this.maxHp;
+            this.color = ELEMENTS[this.elementType].color;
             if(this.traits.includes('SWIFT')) this.baseSpeed *= 1.3;
         }
         
@@ -542,14 +534,13 @@
             if(this.traits.includes('TITAN')) dr *= 0.1;
             else if(this.traits.includes('SUPER_SHIELD')) dr *= 0.25;
             else if(this.traits.includes('SHIELD')) dr *= 0.5;
-            if(this.traits.includes('HARD_SKIN')) dr *= 0.5;
+            if(this.traits.includes('HARD_SKIN')) dr *= 0.7;
             this.hp -= dmg * dr;
         }
 
         applyCC(type, duration, val) {
             if(this.traits.includes('UNSTOPPABLE') && type === 'STUN') return;
             if(this.traits.includes('CC_RESIST')) duration = Math.floor(duration / 2);
-            // 疾跑怪免疫普通冰緩
             if(this.archetype === 'SPRINTER' && type === 'SLOW_ICE') return; 
             
             if(type === 'SLOW' || type === 'SLOW_ICE') { this.slowTimer = duration; this.slowRatio = val; }
@@ -595,7 +586,6 @@
         }
         
         draw() {
-            // 特化怪獸底色視覺
             let baseColor = ELEMENTS[this.elementType].color;
             if(!this.isBoss) {
                 if(this.archetype === 'ARMORED') baseColor = '#94a3b8';
@@ -707,15 +697,12 @@
                 let dmgMulti = 1.0 * critMult;
                 if (this.target.isBoss) dmgMulti *= (1.0 + player.relics.bossDmg);
 
-                // 完美相剋環
                 if (COUNTERS[this.type] === this.target.elementType) {
                     dmgMulti *= 2.0; visuals.push({ t:'text', text:'克制!', x: this.target.x, y: this.target.y - 45, life: 30, color: '#fbbf24' });
                 }
-                
-                // 額外破甲增傷
                 if (this.target.armorBreakTimer > 0) dmgMulti *= 1.5;
-                
                 let fD = this.damage * dmgMulti;
+
                 if(isCrit) visuals.push({ t:'text', text:'💥CRIT', x: this.target.x, y: this.target.y, life: 25, color: '#f87171' });
 
                 if (['WATER', 'SLUSH', 'STORM', 'STEAM'].includes(this.type)) { this.target.wetTimer = 180; }
@@ -775,7 +762,6 @@
                         this.target.applyDamage(fD); let rf = 150 + this.star*20;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rf, life:25, color:'234,88,12' });
                         this.applyAoe(rf, e => { e.burnTimer = 180; e.burnDmg = fD * 0.08; }); break;
-                    
                     case 'MHD': 
                         if(this.target.traits.includes('SHIELD') || this.target.traits.includes('SUPER_SHIELD')) {
                             fD *= 3.0; this.target.traits = this.target.traits.filter(t => t!=='SHIELD' && t!=='SUPER_SHIELD');
@@ -791,11 +777,10 @@
                         this.target.applyDamage(fD * 2.5); this.target.armorBreakTimer = 180;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:80, life:15, color:'250,204,21' }); break;
                     case 'CHAOS': 
-                        this.target.traits = []; // 瓦解所有特性
+                        this.target.traits = []; 
                         visuals.push({ t:'text', text:'瓦解!', x: this.target.x, y: this.target.y - 50, life: 30, color: '#ffffff' });
                         this.target.applyDamage(fD);
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:150, life:20, color:'255,255,255' }); break;
-                        
                     case 'PLASM': 
                         this.target.applyDamage(fD * 2.5); this.target.armorBreakTimer = 120;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:90, life:10, color:'217,70,239' }); break;
@@ -824,7 +809,7 @@
         });
     }
 
-    /* ================= 觸控介面 ================= */
+    /* ================= 介面顯示 ================= */
     function updateInfoPanel() {
         const info = document.getElementById('infoPanel');
         if (selectedTower) {
@@ -891,6 +876,13 @@
     }
     function sellSelected() { if(selectedTower){ gameState.money += 15*Math.pow(2, selectedTower.star-1) + (selectedTower.upgradeLv*10); towers = towers.filter(t=>t!==selectedTower); selectedTower=null; updateAuras(); updateInfoPanel(); } }
 
+    function swapTowers(t1, t2) {
+        let tx = t1.gridX, ty = t1.gridY, tb = t1.isBench;
+        t1.gridX = t2.gridX; t1.gridY = t2.gridY; t1.isBench = t2.isBench;
+        t2.gridX = tx; t2.gridY = ty; t2.isBench = tb;
+        t1.updatePosition(); t2.updatePosition(); selectedTower = t2;
+    }
+
     function getEventCoords(e) {
         let rect = canvas.getBoundingClientRect(); let cx, cy;
         if (e.touches && e.touches.length > 0) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; } 
@@ -915,14 +907,6 @@
         } catch(err) {}
     }
     function handleMove(e) { try { if(draggedTower) { let pos = getEventCoords(e); if(pos) { mouseX = pos.x; mouseY = pos.y; } } } catch(err){} }
-    
-    function swapTowers(t1, t2) {
-        let tx = t1.gridX, ty = t1.gridY, tb = t1.isBench;
-        t1.gridX = t2.gridX; t1.gridY = t2.gridY; t1.isBench = t2.isBench;
-        t2.gridX = tx; t2.gridY = ty; t2.isBench = tb;
-        t1.updatePosition(); t2.updatePosition(); selectedTower = t2;
-    }
-
     function handleEnd(e) {
         try {
             if(!draggedTower) return;
@@ -943,28 +927,28 @@
             if(isClick) { selectedTower = draggedTower; updateInfoPanel(); } 
             else {
                 if(targetT) {
-                    let newBit = targetT.bitVal | draggedTower.bitVal;
-                    // 同星級、同塔種 -> 升星
-                    if (newBit === targetT.bitVal && targetT.type === draggedTower.type) {
-                        if (targetT.star === draggedTower.star) {
+                    if(targetT.star === draggedTower.star) {
+                        let newBit = targetT.bitVal | draggedTower.bitVal;
+                        if (targetT.type === draggedTower.type) {
                             targetT.star++; targetT.upgradeLv = Math.floor((targetT.upgradeLv + draggedTower.upgradeLv) / 2);
                             towers = towers.filter(t => t !== draggedTower);
                             if(selectedTower === draggedTower) selectedTower = targetT;
-                        } else swapTowers(targetT, draggedTower);
-                    } 
-                    // 位元合成邏輯
-                    else if (BIT_TO_KEY[newBit] && BIT_TO_KEY[newBit] !== targetT.type && BIT_TO_KEY[newBit] !== draggedTower.type) {
-                        if (targetT.star === draggedTower.star) {
+                        } 
+                        else if (BIT_TO_KEY[newBit] && BIT_TO_KEY[newBit] !== targetT.type && BIT_TO_KEY[newBit] !== draggedTower.type) {
                             let nType = BIT_TO_KEY[newBit];
                             if (player.unlockedCombos.includes(nType)) {
                                 targetT.type = nType; targetT.baseStats = ELEMENTS[nType]; targetT.bitVal = newBit;
                                 targetT.star++; targetT.upgradeLv = Math.floor((targetT.upgradeLv + draggedTower.upgradeLv) / 2);
                                 towers = towers.filter(t => t !== draggedTower);
                                 if(selectedTower === draggedTower) selectedTower = targetT;
-                            } else swapTowers(targetT, draggedTower); // 未解鎖，安靜交換
-                        } else swapTowers(targetT, draggedTower); // 不同星，安靜交換
-                    } 
-                    else swapTowers(targetT, draggedTower); // 無效合成，安靜交換
+                            } else swapTowers(targetT, draggedTower);
+                        } 
+                        else {
+                            targetT.star++; targetT.upgradeLv = Math.floor((targetT.upgradeLv + draggedTower.upgradeLv) / 2);
+                            towers = towers.filter(t => t !== draggedTower);
+                            if(selectedTower === draggedTower) selectedTower = targetT;
+                        }
+                    } else swapTowers(targetT, draggedTower);
                 } else if(inBoard && !onPath) {
                     draggedTower.gridX = dropX; draggedTower.gridY = dropY; draggedTower.isBench = false; draggedTower.updatePosition(); selectedTower = draggedTower;
                 } else if(inBench) {
@@ -1031,10 +1015,7 @@
         let eExp = gameState.wave * 15 + Math.floor(Math.pow(gameState.wave, 1.2)), eGold = gameState.wave * 10 + Math.floor(Math.pow(gameState.wave, 1.3));
         
         if (isWin && gameState.mode !== 'random' && gameState.mode === player.maxLevel && player.maxLevel < 10) { player.maxLevel++; }
-        
-        if (gameState.mode === 'random' && gameState.wave > player.endlessRecord) {
-            player.endlessRecord = gameState.wave;
-        }
+        if (gameState.mode === 'random' && gameState.wave > player.endlessRecord) { player.endlessRecord = gameState.wave; }
 
         document.getElementById('resultTitle').innerText = title; document.getElementById('resultTitle').style.color = isWin ? "var(--success)" : "var(--danger)";
         document.getElementById('resWave').innerText = gameState.wave; document.getElementById('resExp').innerText = eExp; document.getElementById('resGold').innerText = eGold;
