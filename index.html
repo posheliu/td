@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>英雄元素守塔 - 混沌原質紀元</title>
+    <title>英雄元素守塔 - 自由變異紀元</title>
     <style>
         :root {
             --bg-dark: #0f172a; --panel-bg: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; --gold: #fbbf24;
         }
+        /* 嚴格禁止全選、複製、長按彈出選單，並消除點擊閃爍 */
         * {
             user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
             -webkit-touch-callout: none; box-sizing: border-box; touch-action: none;
@@ -38,6 +39,7 @@
         .btn-gold { background-color: #d97706; }
         .btn-purple { background-color: #9333ea; }
 
+        /* ====== 首頁 ====== */
         .header-card {
             background: var(--panel-bg); padding: 15px; border-radius: 0 0 15px 15px; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; border-bottom: 2px solid #334155; flex-shrink: 0;
@@ -52,6 +54,7 @@
         .relic-box { background: #0f172a; border: 1px solid #3b82f6; border-radius: 8px; padding: 10px; font-size: 14px; color: #cbd5e1; }
         .relic-box span { color: #fbbf24; font-weight: bold; }
 
+        /* ====== 遊戲UI ====== */
         .game-top-bar {
             flex-shrink: 0; background: var(--panel-bg); display: flex; justify-content: space-between; 
             align-items: center; padding: 8px 12px; font-size: 15px; font-weight: bold; z-index: 5;
@@ -90,6 +93,16 @@
         }
         .gacha-text { font-size: 24px; font-weight: bold; color: #fbbf24; margin-bottom: 20px; animation: pop 0.5s ease-out; }
         @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+        /* 自由模式表單樣式 */
+        .free-mode-form {
+            display:flex; flex-direction:column; gap:10px; text-align:left; color:#cbd5e1; font-size:14px; 
+            background:#0f172a; padding:15px; border-radius:8px; border: 1px solid #334155;
+        }
+        .free-mode-form select {
+            width:100%; padding:10px; border-radius:6px; background:#1e293b; color:#fff; 
+            border:1px solid #475569; margin-top:5px; font-size: 14px;
+        }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -106,18 +119,18 @@
         </div>
         <div class="menu-content" id="menuMain">
             <div style="background:#450a0a; border: 1px solid #dc2626; padding:10px; border-radius:8px; text-align:center;">
-                <span style="font-size:16px; font-weight:bold; color:#fca5a5;">🏆 無盡模式最高紀錄：第 <span id="uiEndlessRecord" style="font-size:22px; color:#fbbf24;">0</span> 波</span>
+                <span style="font-size:16px; font-weight:bold; color:#fca5a5;">🏆 無盡最高紀錄：第 <span id="uiEndlessRecord" style="font-size:22px; color:#fbbf24;">0</span> 波</span>
             </div>
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <button class="btn btn-success" style="padding: 15px; font-size: 16px;" onclick="showLevelSelect()">🗺️ 選擇關卡</button>
-                <button class="btn btn-purple" style="padding: 15px; font-size: 16px;" onclick="showGacha()">🔮 扭蛋中心</button>
-                <button class="btn btn-gold" style="padding: 15px; font-size: 16px; grid-column: span 2;" onclick="startGame('random')">🎲 隨機模式 (無盡挑戰)</button>
+                <button class="btn btn-success" style="padding: 12px; font-size: 16px;" onclick="showSubMenu('menuLevel')">🗺️ 劇情關卡</button>
+                <button class="btn btn-purple" style="padding: 12px; font-size: 16px;" onclick="showSubMenu('menuGacha')">🔮 扭蛋中心</button>
+                <button class="btn btn-gold" style="padding: 15px; font-size: 18px; grid-column: span 2;" onclick="showSubMenu('menuFree')">⚙️ 自由模式 (自訂局)</button>
             </div>
             
             <div style="font-size:13px; color:#94a3b8; background:#0f172a; padding:10px; border-radius:8px; line-height: 1.5; margin-top:5px;">
-                ⚔️ <strong>完美相剋環(2倍傷)</strong>：💧＞🔥＞❄️＞🌪️＞⚡＞💧<br>
-                ✨ <strong>全階煉金</strong>：星級相同即可升級。不同屬性疊加可合成【高階衍生】(需先解鎖)！
+                ⚠️ <strong>通膨法則</strong>：局內每次購買/升級塔，所需費用將提升 10%！<br>
+                ⚔️ <strong>相剋與變異</strong>：全塔皆有屬性，善用煉金合成對抗高波數變異怪。
             </div>
 
             <hr style="border:1px solid #334155; width:100%; margin: 2px 0;">
@@ -127,12 +140,15 @@
             <button class="btn" onclick="upgradeTech('money')" id="btnTechMoney">💰 初始 +$<span id="techMoneyVal">0</span> | $<span id="costMoney">0</span></button>
         </div>
         
+        <!-- 子選單：關卡選擇 -->
         <div class="menu-content hidden" id="menuLevel">
-            <h2 style="text-align:center; margin:0;">🗺️ 選擇關卡</h2>
+            <h2 style="text-align:center; margin:0;">🗺️ 劇情關卡</h2>
+            <p style="text-align:center; color:#94a3b8; font-size:14px; margin:0;">(固定回字地圖 / 每關50波極限防禦)</p>
             <div class="level-grid" id="levelGridUI"></div>
-            <button class="btn btn-danger" style="margin-top:20px; padding:12px;" onclick="hideSubMenu()">🔙 返回</button>
+            <button class="btn btn-danger" style="margin-top:auto; padding:12px;" onclick="hideSubMenu()">🔙 返回首頁</button>
         </div>
 
+        <!-- 子選單：扭蛋中心 -->
         <div class="menu-content hidden" id="menuGacha">
             <h2 style="text-align:center; margin:0; color:#c084fc;">🔮 煉金扭蛋</h2>
             <p style="font-size:13px; color:#94a3b8; text-align:center;">抽取【高階衍生塔配方】與【永久遺物】</p>
@@ -147,7 +163,47 @@
             <h4 style="margin:10px 0 0 0;">🔓 已解鎖的配方</h4>
             <div id="unlockedCombosList" style="font-size:13px; color:#cbd5e1; display:flex; flex-wrap:wrap; gap:5px;"></div>
             
-            <button class="btn btn-danger" style="margin-top:auto; padding:12px;" onclick="hideSubMenu()">🔙 返回</button>
+            <button class="btn btn-danger" style="margin-top:auto; padding:12px;" onclick="hideSubMenu()">🔙 返回首頁</button>
+        </div>
+
+        <!-- 子選單：自由模式設定 -->
+        <div class="menu-content hidden" id="menuFree">
+            <h2 style="text-align:center; margin:0; color:#fbbf24;">⚙️ 自由模式</h2>
+            <p style="text-align:center; color:#94a3b8; font-size:14px; margin:0;">自訂專屬於你的極限挑戰！</p>
+            
+            <div class="free-mode-form">
+                <label>🔥 難易度：
+                    <select id="fmDiff">
+                        <option value="EASY">🌱 新手 (怪物血量 70%，容錯極高)</option>
+                        <option value="NORMAL" selected>⚔️ 中等 (標準挑戰)</option>
+                        <option value="HARD">💀 地獄 (怪物血量 150%，極速，容錯低)</option>
+                    </select>
+                </label>
+                <label>🗺️ 地圖：
+                    <select id="fmMap">
+                        <option value="O">🔄 回字地圖 (外圍包抄)</option>
+                        <option value="S">〰️ S字地圖 (髮夾彎折返)</option>
+                        <option value="G">🌀 G字地圖 (向內死路螺旋)</option>
+                    </select>
+                </label>
+                <label>⚖️ 失敗條件：
+                    <select id="fmCond">
+                        <option value="BOARD">📦 場上滿怪 (怪物持續繞圈，場上太多即敗)</option>
+                        <option value="LEAK">🏃 漏怪達標 (怪物走到終點即消失，漏太多即敗)</option>
+                    </select>
+                </label>
+                <label>🌊 波數上限：
+                    <select id="fmWave">
+                        <option value="30">30 波</option>
+                        <option value="50" selected>50 波</option>
+                        <option value="100">100 波</option>
+                        <option value="999">無盡模式 (不限波數)</option>
+                    </select>
+                </label>
+            </div>
+
+            <button class="btn btn-gold" style="padding: 15px; font-size: 18px;" onclick="startFreeMode()">🚀 啟動自訂戰局</button>
+            <button class="btn btn-danger" style="margin-top:auto; padding:12px;" onclick="hideSubMenu()">🔙 返回首頁</button>
         </div>
     </div>
 
@@ -161,10 +217,10 @@
     <div id="gameScreen" class="screen hidden">
         <div class="game-top-bar">
             <div>💰 $<span id="gameMoney" style="color:var(--gold)">0</span></div>
-            <div>空間: <span id="gameMonsterCount" style="color:var(--success)">0/30</span></div>
-            <div>波數: <span id="gameWave">1</span><span id="maxWaveText">/50</span></div>
+            <div id="gameLimitLabel">狀態: <span id="gameMonsterCount" style="color:var(--success)">0/30</span> <span style="font-size:10px;color:#94a3b8">(BOSS=10)</span></div>
         </div>
         <div class="game-sub-bar">
+            <div>波數: <span id="gameWave">1</span><span id="maxWaveText">/50</span></div>
             <div style="display:flex; gap:5px;">
                 <button class="speed-btn active" id="btnSpd1" onclick="setSpeed(1)">1x</button>
                 <button class="speed-btn" id="btnSpd2" onclick="setSpeed(2)">2x</button>
@@ -185,7 +241,8 @@
                 <span style="color:#94a3b8; align-self:center; margin-top:10px;">選擇塔以查看屬性技能</span>
             </div>
             <div class="controls-grid">
-                <button class="btn btn-success" onclick="summonTower()">召喚塔 ($30)</button>
+                <!-- 【動態費用顯示】 -->
+                <button class="btn btn-success" id="btnSummon" onclick="summonTower()">召喚塔<br>($<span id="uiSummonCost">30</span>)</button>
                 <button class="btn" id="btnUpgDmg" onpointerdown="startUpg('dmg')" onpointerup="stopUpg()" onpointerleave="stopUpg()">⚔️增傷<br>Lv.<span id="uiUpgDmgLv">0</span> ($<span id="uiUpgDmgCost">20</span>)</button>
                 <button class="btn btn-gold" id="btnUpgSummon" onpointerdown="startUpg('summon')" onpointerup="stopUpg()" onpointerleave="stopUpg()">✨高星<br>Lv.<span id="uiUpgSummonLv">0</span> ($<span id="uiUpgSummonCost">50</span>)</button>
             </div>
@@ -208,7 +265,7 @@
 <script>
     /* ================= 完美存檔繼承系統 ================= */
     let player = { 
-        level: 1, exp: 0, globalGold: 200, maxLevel: 1, endlessRecord: 0,
+        level: 1, exp: 0, globalGold: 500, maxLevel: 1, endlessRecord: 0,
         tech: { dmgLv: 0, spdLv: 0, moneyLv: 0 },
         unlockedCombos: [], relics: { critRate: 0, critDmg: 0, bossDmg: 0 }
     };
@@ -245,7 +302,7 @@
         let grid = document.getElementById('levelGridUI'); grid.innerHTML = '';
         for(let i=1; i<=10; i++) {
             let btn = document.createElement('button'); btn.className = 'btn lvl-btn';
-            if (i <= player.maxLevel) { btn.classList.add('btn-primary'); btn.innerText = i; btn.onclick = () => startGame(i); } 
+            if (i <= player.maxLevel) { btn.classList.add('btn-primary'); btn.innerText = i; btn.onclick = () => startLevel(i); } 
             else { btn.style.backgroundColor = '#334155'; btn.innerText = '🔒'; btn.disabled = true; }
             grid.appendChild(btn);
         }
@@ -259,9 +316,15 @@
             player.unlockedCombos.map(k => `<span style="background:#1e293b; padding:4px 8px; border-radius:4px;">${ELEMENTS[k].name}塔</span>`).join('');
     }
 
-    function showLevelSelect() { document.getElementById('menuMain').classList.add('hidden'); document.getElementById('menuLevel').classList.remove('hidden'); }
-    function showGacha() { document.getElementById('menuMain').classList.add('hidden'); document.getElementById('menuGacha').classList.remove('hidden'); updateMenuUI();}
-    function hideSubMenu() { document.getElementById('menuLevel').classList.add('hidden'); document.getElementById('menuGacha').classList.add('hidden'); document.getElementById('menuMain').classList.remove('hidden'); }
+    function showSubMenu(id) { 
+        document.getElementById('menuMain').classList.add('hidden'); 
+        document.getElementById('menuLevel').classList.add('hidden');
+        document.getElementById('menuGacha').classList.add('hidden');
+        document.getElementById('menuFree').classList.add('hidden');
+        document.getElementById(id).classList.remove('hidden'); 
+        if(id === 'menuGacha') updateMenuUI();
+    }
+    function hideSubMenu() { showSubMenu('menuMain'); }
 
     function upgradeTech(type) {
         let c = 0;
@@ -272,7 +335,6 @@
     }
 
     /* ================= 終極位元煉金系統 ================= */
-    // FIRE=1, WATER=2, WIND=4, ELEC=8, ICE=16
     const ELEMENTS = {
         'FIRE':  { bit: 1, color: '#ef4444', name: '火', dmg: 35, cd: 45, range: 300, isBase: true, recipeStr: '火' },
         'WATER': { bit: 2, color: '#3b82f6', name: '水', dmg: 20, cd: 30, range: 280, isBase: true, recipeStr: '水' },
@@ -280,7 +342,6 @@
         'ELEC':  { bit: 8, color: '#eab308', name: '電', dmg: 55, cd: 55, range: 280, isBase: true, recipeStr: '雷' },
         'ICE':   { bit: 16, color: '#06b6d4', name: '冰', dmg: 25, cd: 40, range: 250, isBase: true, recipeStr: '冰' },
         
-        // T2 衍生
         'STEAM': { bit: 3, color: '#9ca3af', name: '蒸氣', dmg: 25, cd: 25, range: 310, isBase: false, recipeStr: '水+火' }, 
         'SLUSH': { bit: 18, color: '#7dd3fc', name: '碎冰', dmg: 30, cd: 40, range: 290, isBase: false, recipeStr: '水+冰' }, 
         'STORM': { bit: 6, color: '#1d4ed8', name: '暴雨', dmg: 40, cd: 35, range: 310, isBase: false, recipeStr: '水+風' }, 
@@ -292,11 +353,10 @@
         'SUPER': { bit: 24, color: '#c084fc', name: '超導', dmg: 60, cd: 50, range: 340, isBase: false, recipeStr: '冰+雷' }, 
         'TSTORM':{ bit: 12, color: '#84cc16', name: '雷暴', dmg: 40, cd: 20, range: 300, isBase: false, recipeStr: '風+雷' },
         
-        // T3, T5 終極
         'MHD':   { bit: 11, color: '#f43f5e', name: '磁流體', dmg: 90, cd: 35, range: 340, isBase: false, recipeStr: '水+火+雷' },
         'AURORA':{ bit: 28, color: '#67e8f9', name: '極光',  dmg: 80, cd: 30, range: 400, isBase: false, recipeStr: '冰+風+雷' },
         'SOLAR': { bit: 13, color: '#facc15', name: '天罰',  dmg: 180, cd: 60, range: 360, isBase: false, recipeStr: '火+風+雷' },
-        'CHAOS': { bit: 31, color: '#ffffff', name: '混沌',  dmg: 350, cd: 45, range: 500, isBase: false, recipeStr: '五元歸一' }
+        'CHAOS': { bit: 31, color: '#ffffff', name: '混沌',  dmg: 350, cd: 45, range: 500, isBase: false, recipeStr: '五元全合成' }
     };
     const BASE_KEYS = ['FIRE', 'WATER', 'WIND', 'ELEC', 'ICE'];
     const COUNTERS = { 'WATER': 'FIRE', 'FIRE': 'ICE', 'ICE': 'WIND', 'WIND': 'ELEC', 'ELEC': 'WATER' };
@@ -336,12 +396,19 @@
         modal.classList.remove('hidden');
     }
 
-    /* ================= Web Worker 背景守護 ================= */
+    /* ================= Web Worker 引擎 ================= */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const GAME_W = 720, GAME_H = 1080, TILE = 120, COLS = 6, ROWS = 9;
     
-    let gameState = { isActive: false, money: 0, wave: 1, frame: 0, isOver: false, isPaused: false, globalDmgLv: 0, summonLv: 0, bossSpawned: false, mode: 1, speed: 1 };
+    // 【動態通膨系統】：將費用存入狀態中
+    let gameState = { 
+        isActive: false, money: 0, wave: 1, frame: 0, isOver: false, isPaused: false, 
+        globalDmgLv: 0, summonLv: 0, bossSpawned: false, speed: 1,
+        diffMulti: 1.0, mapType: 'O', lossCond: 'BOARD', maxWave: 50, isStory: false, limitCount: 30, leakCount: 0,
+        // 動態成本
+        costSummon: 30, costDmg: 20, costStar: 50
+    };
     let pathCells = [], enemies = [], towers = [], bullets = [], visuals = [];
     let draggedTower = null, selectedTower = null;
     let dragStartX = 0, dragStartY = 0, mouseX = 0, mouseY = 0;
@@ -377,7 +444,7 @@
 
     function updateLogic() {
         gameState.frame++;
-        if (gameState.frame % 600 === 0 && (gameState.mode === 'random' || gameState.wave < 50)) { 
+        if (gameState.frame % 600 === 0 && gameState.wave < gameState.maxWave) { 
             gameState.wave++; gameState.bossSpawned = false;
         }
 
@@ -396,23 +463,29 @@
             
             let spInt = Math.max(25, 120 - gameState.wave * 2);
             if (arch === 'SWARM') spInt = Math.max(8, Math.floor(spInt / 3)); 
-            
             if (gameState.frame % spInt === 0) enemies.push(new Enemy(gameState.wave, arch));
         }
         
         enemies = enemies.filter(e => { 
-            e.update(); 
-            if (e.hp <= 0) {
+            let alive = e.update(); 
+            if (e.hp <= 0 && alive === false) { // 被打死
                 gameState.money += e.reward;
                 visuals.push({ t:'text', text:'+$'+e.reward, x: e.x, y: e.y - 20, life: 25, color: '#fbbf24' });
                 return false;
             }
-            return true;
+            return alive; // 漏怪的話會在 e.update() 回傳 false，但不加錢
         });
 
-        let mCount = enemies.reduce((sum, e) => sum + (e.isBoss ? 10 : 1), 0);
-        if (mCount >= 30) { endGame(false); return; }
-        if (gameState.mode !== 'random' && gameState.wave >= 50 && gameState.bossSpawned && enemies.length === 0) { endGame(true); return; }
+        // 敗北條件判定
+        if (gameState.lossCond === 'BOARD') {
+            let mCount = enemies.reduce((sum, e) => sum + (e.isBoss ? 10 : 1), 0);
+            if (mCount >= gameState.limitCount) { endGame(false); return; }
+        } else {
+            if (gameState.leakCount >= gameState.limitCount) { endGame(false); return; }
+        }
+        
+        // 勝利條件判定
+        if (gameState.wave >= gameState.maxWave && gameState.bossSpawned && enemies.length === 0) { endGame(true); return; }
 
         towers.forEach(t => { if(t !== draggedTower) t.update(); });
         bullets = bullets.filter(b => b.update());
@@ -431,7 +504,7 @@
         
         ctx.fillStyle = '#0b1120'; ctx.fillRect(0, 7*TILE, GAME_W, TILE);
         ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText("⬇️ 備戰區 (同星疊加/無配方則交換) ⬇️", GAME_W/2, 7*TILE + TILE/2);
+        ctx.fillText("⬇️ 備戰區 (同星疊加/無配方則自動交換) ⬇️", GAME_W/2, 7*TILE + TILE/2);
         
         ctx.strokeStyle = '#334155'; ctx.lineWidth = 4;
         for(let x=0; x<COLS; x++) ctx.strokeRect(x*TILE, 8*TILE, TILE, TILE);
@@ -468,15 +541,24 @@
         document.getElementById('gameMoney').innerText = gameState.money;
         document.getElementById('gameWave').innerText = gameState.wave;
         
-        let mCount = enemies.reduce((sum, e) => sum + (e.isBoss ? 10 : 1), 0);
         let cEl = document.getElementById('gameMonsterCount');
-        cEl.innerText = `${mCount}/30`;
-        cEl.style.color = mCount >= 20 ? 'var(--danger)' : 'var(--success)';
+        if (gameState.lossCond === 'BOARD') {
+            let mCount = enemies.reduce((sum, e) => sum + (e.isBoss ? 10 : 1), 0);
+            cEl.innerText = `${mCount}/${gameState.limitCount}`;
+            cEl.style.color = mCount >= gameState.limitCount * 0.7 ? 'var(--danger)' : 'var(--success)';
+            document.getElementById('gameLimitLabel').innerHTML = `場上: <span id="gameMonsterCount" style="color:${cEl.style.color}">${mCount}/${gameState.limitCount}</span> <span style="font-size:11px;color:#94a3b8">(BOSS佔10)</span>`;
+        } else {
+            cEl.innerText = `${gameState.leakCount}/${gameState.limitCount}`;
+            cEl.style.color = gameState.leakCount >= gameState.limitCount * 0.7 ? 'var(--danger)' : 'var(--success)';
+            document.getElementById('gameLimitLabel').innerHTML = `漏怪: <span id="gameMonsterCount" style="color:${cEl.style.color}">${gameState.leakCount}/${gameState.limitCount}</span> <span style="font-size:11px;color:#94a3b8">(BOSS扣10)</span>`;
+        }
         
+        // 動態成本 UI 更新
         document.getElementById('uiUpgDmgLv').innerText = gameState.globalDmgLv;
-        document.getElementById('uiUpgDmgCost').innerText = 20 + gameState.globalDmgLv * 10;
+        document.getElementById('uiUpgDmgCost').innerText = gameState.costDmg;
         document.getElementById('uiUpgSummonLv').innerText = gameState.summonLv;
-        document.getElementById('uiUpgSummonCost').innerText = 50 + gameState.summonLv * 20;
+        document.getElementById('uiUpgSummonCost').innerText = gameState.costStar;
+        document.getElementById('uiSummonCost').innerText = gameState.costSummon;
     }
 
     /* ================= 遊戲物件 ================= */
@@ -492,6 +574,7 @@
             this.traits = [];
             if(wave >= 11) this.traits.push('HARD_SKIN');
             if(wave >= 21) this.traits.push('CC_RESIST');
+            if(wave >= 31) this.traits.push('SWIFT');
             if(wave >= 41) this.traits.push('REGEN');
             if(wave >= 51) this.traits.push('SHIELD');
             if(wave >= 61) this.traits.push('EVASION');
@@ -502,20 +585,16 @@
             if (archetype === 'ARMORED') this.traits.push('HARD_SKIN');
             if (archetype === 'SHIELDED') this.traits.push('SHIELD');
             if (archetype === 'SPRINTER') this.traits.push('SWIFT');
-
             this.traits = [...new Set(this.traits)];
 
-            let diffM = (gameState.mode === 'random') ? 5 : gameState.mode; 
-            
             if (this.isBoss) {
                 this.elementType = BASE_KEYS[((wave / 10) - 1) % 5];
-                this.maxHp = 1000 + wave * 400 * (1 + diffM*0.1) + Math.pow(wave, 2.2) * 15;
+                this.maxHp = 1000 + wave * 400 * gameState.diffMulti + Math.pow(wave, 2.2) * 15;
                 this.baseSpeed = 0.9 + (wave * 0.015);
                 this.radius = 45; this.reward = 100;
             } else {
-                let hpBase = 60 + wave * 45 * (1 + diffM*0.1) + Math.pow(wave, 1.7) * 5;
+                let hpBase = 60 + wave * 45 * gameState.diffMulti + Math.pow(wave, 1.7) * 5;
                 let spdBase = 1.6 + (wave * 0.025);
-                
                 if (archetype === 'ARMORED') { hpBase *= 1.5; spdBase *= 0.8; }
                 else if (archetype === 'SHIELDED') { hpBase *= 1.2; }
                 else if (archetype === 'SPRINTER') { hpBase *= 0.7; spdBase *= 2.0; }
@@ -524,8 +603,7 @@
                 this.maxHp = hpBase; this.baseSpeed = spdBase;
                 this.radius = this.radius || 24; this.reward = 5 + Math.floor(wave / 5);
             }
-            this.hp = this.maxHp;
-            this.color = ELEMENTS[this.elementType].color;
+            this.hp = this.maxHp; this.color = ELEMENTS[this.elementType].color;
             if(this.traits.includes('SWIFT')) this.baseSpeed *= 1.3;
         }
         
@@ -534,7 +612,7 @@
             if(this.traits.includes('TITAN')) dr *= 0.1;
             else if(this.traits.includes('SUPER_SHIELD')) dr *= 0.25;
             else if(this.traits.includes('SHIELD')) dr *= 0.5;
-            if(this.traits.includes('HARD_SKIN')) dr *= 0.7;
+            if(this.traits.includes('HARD_SKIN')) dr *= 0.5;
             this.hp -= dmg * dr;
         }
 
@@ -542,7 +620,6 @@
             if(this.traits.includes('UNSTOPPABLE') && type === 'STUN') return;
             if(this.traits.includes('CC_RESIST')) duration = Math.floor(duration / 2);
             if(this.archetype === 'SPRINTER' && type === 'SLOW_ICE') return; 
-            
             if(type === 'SLOW' || type === 'SLOW_ICE') { this.slowTimer = duration; this.slowRatio = val; }
             if(type === 'STUN') { this.stunTimer = duration; }
         }
@@ -561,27 +638,45 @@
                 this.applyDamage(this.burnDmg); this.burnTimer--;
                 if(gameState.frame % 10 === 0) visuals.push({t:'text', text:'🔥', x:this.x, y:this.y, life:15, color:'#ef4444'});
             }
-            
             let regenRate = this.traits.includes('TITAN') ? 0.05 : (this.traits.includes('REGEN') ? 0.02 : 0);
             if (regenRate > 0 && gameState.frame % 60 === 0) this.hp = Math.min(this.maxHp, this.hp + this.maxHp * regenRate);
 
             if (this.armorBreakTimer > 0) this.armorBreakTimer--;
             if (this.wetTimer > 0) { this.wetTimer--; if(gameState.frame % 20 === 0) visuals.push({t:'text', text:'💧', x:this.x, y:this.y-15, life:10, color:'#3b82f6'}); }
             
-            let nextIndex = (this.pathIndex + 1) % pathCells.length;
-            let tg = pathCells[nextIndex];
-            
             if (this.stunTimer > 0) { this.stunTimer--; return this.hp > 0; }
 
             let spd = this.slowTimer > 0 ? this.baseSpeed * this.slowRatio : this.baseSpeed;
             if(this.slowTimer > 0) this.slowTimer--;
 
+            let tg = pathCells[this.pathIndex + 1];
+            if (!tg) return this.hp > 0; // Fallback
+
             let tx = tg.x * TILE + TILE/2, ty = tg.y * TILE + TILE/2;
             let dx = tx - this.x, dy = ty - this.y, dist = Math.hypot(dx, dy);
 
-            if (dist > TILE * 2) { this.x = tx; this.y = ty; this.pathIndex = nextIndex; return this.hp > 0; }
-            if (dist < spd) { this.x = tx; this.y = ty; this.pathIndex = nextIndex; } 
-            else { this.x += (dx/dist)*spd; this.y += (dy/dist)*spd; }
+            // 到達節點
+            if (dist < spd) {
+                this.pathIndex++;
+                // 【漏怪判定引擎】
+                if (this.pathIndex >= pathCells.length - 1) {
+                    if (gameState.lossCond === 'LEAK') {
+                        gameState.leakCount += this.isBoss ? 10 : 1;
+                        visuals.push({ t:'text', text:'❌漏怪', x: this.x, y: this.y, life: 30, color: '#ef4444' });
+                        return false; // Enemy is removed without reward
+                    } else {
+                        // 如果是滿怪模式且地圖是迴圈，就繞回去
+                        if (pathCells[0].x === pathCells[pathCells.length-1].x && pathCells[0].y === pathCells[pathCells.length-1].y) {
+                            this.pathIndex = 0; 
+                        } else {
+                            // 非迴圈地圖就在終點卡著
+                            this.pathIndex = Math.max(0, pathCells.length - 2); 
+                        }
+                    }
+                }
+            } else {
+                this.x += (dx/dist)*spd; this.y += (dy/dist)*spd; 
+            }
             return this.hp > 0;
         }
         
@@ -762,6 +857,16 @@
                         this.target.applyDamage(fD); let rf = 150 + this.star*20;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rf, life:25, color:'234,88,12' });
                         this.applyAoe(rf, e => { e.burnTimer = 180; e.burnDmg = fD * 0.08; }); break;
+                    case 'PLASM': 
+                        this.target.applyDamage(fD * 2.5); this.target.armorBreakTimer = 120;
+                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:90, life:10, color:'217,70,239' }); break;
+                    case 'BLIZZ': 
+                        this.target.applyDamage(fD); let rb = 200 + this.star*30;
+                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rb, life:25, color:'224,242,254' });
+                        this.applyAoe(rb, e => { e.applyCC('STUN', 45, null); e.applyDamage(fD*0.4); }); break;
+                    case 'TSTORM': 
+                        this.target.applyDamage(fD); this.target.applyCC('STUN', 15, null);
+                        visuals.push({ t:'bolt', x1:this.x, y1:this.y, x2:this.target.x, y2:this.target.y, life:5, color:'132,204,22' }); break;
                     case 'MHD': 
                         if(this.target.traits.includes('SHIELD') || this.target.traits.includes('SUPER_SHIELD')) {
                             fD *= 3.0; this.target.traits = this.target.traits.filter(t => t!=='SHIELD' && t!=='SUPER_SHIELD');
@@ -781,16 +886,6 @@
                         visuals.push({ t:'text', text:'瓦解!', x: this.target.x, y: this.target.y - 50, life: 30, color: '#ffffff' });
                         this.target.applyDamage(fD);
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:150, life:20, color:'255,255,255' }); break;
-                    case 'PLASM': 
-                        this.target.applyDamage(fD * 2.5); this.target.armorBreakTimer = 120;
-                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:90, life:10, color:'217,70,239' }); break;
-                    case 'BLIZZ': 
-                        this.target.applyDamage(fD); let rb = 200 + this.star*30;
-                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rb, life:25, color:'224,242,254' });
-                        this.applyAoe(rb, e => { e.applyCC('STUN', 45, null); e.applyDamage(fD*0.4); }); break;
-                    case 'TSTORM': 
-                        this.target.applyDamage(fD); this.target.applyCC('STUN', 15, null);
-                        visuals.push({ t:'bolt', x1:this.x, y1:this.y, x2:this.target.x, y2:this.target.y, life:5, color:'132,204,22' }); break;
                 }
                 return false;
             }
@@ -809,7 +904,7 @@
         });
     }
 
-    /* ================= 介面顯示 ================= */
+    /* ================= 觸控與費用系統 ================= */
     function updateInfoPanel() {
         const info = document.getElementById('infoPanel');
         if (selectedTower) {
@@ -854,19 +949,34 @@
     }
 
     let upgInterval = null;
-    function startUpg(type) { doUpg(type); upgInterval = setInterval(() => doUpg(type), 120); }
+    function startUpg(type) { doUpg(type); upgInterval = setInterval(() => doUpg(type), 150); }
     function stopUpg() { clearInterval(upgInterval); }
     function doUpg(type) {
-        if(type === 'dmg') { let c = 20 + gameState.globalDmgLv * 10; if (gameState.money >= c && !gameState.isOver) { gameState.money -= c; gameState.globalDmgLv++; updateInfoPanel(); } } 
-        else { let c = 50 + gameState.summonLv * 20; if (gameState.money >= c && !gameState.isOver) { gameState.money -= c; gameState.summonLv++; updateInfoPanel(); } }
+        if(type === 'dmg') { 
+            if (gameState.money >= gameState.costDmg && !gameState.isOver) { 
+                gameState.money -= gameState.costDmg; 
+                gameState.costDmg = Math.floor(gameState.costDmg * 1.1);
+                gameState.globalDmgLv++; updateInfoPanel(); 
+            } 
+        } 
+        else { 
+            if (gameState.money >= gameState.costStar && !gameState.isOver) { 
+                gameState.money -= gameState.costStar; 
+                gameState.costStar = Math.floor(gameState.costStar * 1.1);
+                gameState.summonLv++; updateInfoPanel(); 
+            } 
+        }
     }
 
     function summonTower() {
-        if(gameState.money >= 30) {
+        if(gameState.money >= gameState.costSummon) {
             let empty = null;
             for(let x=0; x<COLS; x++){ if(!towers.find(t=>t.gridX===x && t.gridY===8)) { empty={x,y:8}; break; } }
             if(empty) {
-                gameState.money-=30; let rand = Math.random() * 100;
+                gameState.money -= gameState.costSummon; 
+                gameState.costSummon = Math.floor(gameState.costSummon * 1.1);
+                
+                let rand = Math.random() * 100;
                 let s3 = gameState.summonLv * 1.0, s2 = gameState.summonLv * 2.0, star = 1;
                 if (rand < s3) star = 3; else if (rand < s3 + s2) star = 2;
                 let t = new Tower(empty.x, empty.y, true); t.star = star; towers.push(t);
@@ -943,11 +1053,7 @@
                                 if(selectedTower === draggedTower) selectedTower = targetT;
                             } else swapTowers(targetT, draggedTower);
                         } 
-                        else {
-                            targetT.star++; targetT.upgradeLv = Math.floor((targetT.upgradeLv + draggedTower.upgradeLv) / 2);
-                            towers = towers.filter(t => t !== draggedTower);
-                            if(selectedTower === draggedTower) selectedTower = targetT;
-                        }
+                        else swapTowers(targetT, draggedTower);
                     } else swapTowers(targetT, draggedTower);
                 } else if(inBoard && !onPath) {
                     draggedTower.gridX = dropX; draggedTower.gridY = dropY; draggedTower.isBench = false; draggedTower.updatePosition(); selectedTower = draggedTower;
@@ -960,9 +1066,9 @@
 
     canvas.addEventListener('pointerdown', handleStart); canvas.addEventListener('pointermove', handleMove); canvas.addEventListener('pointerup', handleEnd);
 
-    /* ================= 關卡路徑配置 (6x7戰鬥區) ================= */
+    /* ================= 地圖生成與控制 ================= */
     function togglePause() { gameState.isPaused = !gameState.isPaused; document.getElementById('pauseBtn').innerText = gameState.isPaused ? '▶️ 繼續' : '⏸️ 暫停'; }
-    function leaveGame() { if(confirm("確定要離開嗎？(關卡模式將視為失敗)")) { endGame(false); } }
+    function leaveGame() { if(confirm("確定要離開嗎？(視為失敗結算)")) { endGame(false); } }
 
     function buildPathFromPoints(points) {
         let p = [];
@@ -977,7 +1083,10 @@
 
     function getLevelPath(lvl) {
         let pts = [];
-        if(lvl===1) pts=[{x:0,y:0},{x:5,y:0},{x:5,y:6},{x:0,y:6},{x:0,y:1}]; 
+        if(lvl==='O') pts=[{x:0,y:0},{x:5,y:0},{x:5,y:6},{x:0,y:6},{x:0,y:0}];
+        else if(lvl==='S') pts=[{x:0,y:0},{x:5,y:0},{x:5,y:2},{x:0,y:2},{x:0,y:4},{x:5,y:4},{x:5,y:6},{x:0,y:6}];
+        else if(lvl==='G') pts=[{x:0,y:0},{x:5,y:0},{x:5,y:6},{x:0,y:6},{x:0,y:2},{x:3,y:2},{x:3,y:4},{x:2,y:4}];
+        else if(lvl===1) pts=[{x:0,y:0},{x:5,y:0},{x:5,y:6},{x:0,y:6},{x:0,y:1}]; 
         else if(lvl===2) pts=[{x:0,y:1},{x:5,y:1},{x:5,y:3},{x:0,y:3},{x:0,y:5},{x:5,y:5}];
         else if(lvl===3) pts=[{x:0,y:0},{x:0,y:6},{x:2,y:6},{x:2,y:1},{x:3,y:1},{x:3,y:6},{x:5,y:6},{x:5,y:0}];
         else if(lvl===4) pts=[{x:0,y:0},{x:5,y:0},{x:5,y:6},{x:0,y:6},{x:0,y:2},{x:3,y:2},{x:3,y:4},{x:2,y:4}];
@@ -990,19 +1099,54 @@
         return buildPathFromPoints(pts);
     }
 
-    function startGame(mode) {
-        document.getElementById('menuMain').classList.add('hidden'); document.getElementById('menuLevel').classList.add('hidden');
+    function startLevel(lvl) {
+        let diffMulti = 1.0;
+        let limit = 30;
+        initGameConfig({ mode: lvl, diffMulti, lossCond: 'BOARD', limitCount: limit, maxWave: 50, mapPath: getLevelPath(lvl), isStory: true });
+    }
+
+    function startFreeMode() {
+        let diffSel = document.getElementById('fmDiff').value;
+        let mapSel = document.getElementById('fmMap').value;
+        let condSel = document.getElementById('fmCond').value;
+        let waveSel = document.getElementById('fmWave').value;
+
+        let diffMulti = diffSel === 'EASY' ? 0.7 : (diffSel === 'HARD' ? 1.5 : 1.0);
+        let limit = diffSel === 'EASY' ? 40 : (diffSel === 'HARD' ? 20 : 30);
+        let maxWave = parseInt(waveSel);
+
+        initGameConfig({ mode: 'random', diffMulti, lossCond: condSel, limitCount: limit, maxWave, mapPath: getLevelPath(mapSel), isStory: false });
+    }
+
+    function initGameConfig(config) {
+        document.getElementById('menuMain').classList.add('hidden'); 
+        document.getElementById('menuLevel').classList.add('hidden');
+        document.getElementById('menuFree').classList.add('hidden');
         document.getElementById('gameScreen').classList.remove('hidden');
         
-        gameState = { isActive: true, money: 250 + (player.tech.moneyLv*20), wave: 1, frame: 0, isOver: false, isPaused: false, globalDmgLv: 0, summonLv: 0, bossSpawned: false, mode: mode, speed: 1 };
+        gameState = { 
+            isActive: true, money: 250 + (player.tech.moneyLv*20), wave: 1, frame: 0, 
+            isOver: false, isPaused: false, globalDmgLv: 0, summonLv: 0, bossSpawned: false, speed: 1,
+            mode: config.mode, diffMulti: config.diffMulti, lossCond: config.lossCond, 
+            limitCount: config.limitCount, maxWave: config.maxWave, isStory: config.isStory, leakCount: 0,
+            costSummon: 30, costDmg: 20, costStar: 50
+        };
+        
         enemies = []; towers = []; bullets = []; visuals = []; draggedTower = null; selectedTower = null;
         setSpeed(1);
         
-        document.getElementById('maxWaveText').innerText = mode === 'random' ? ' (無盡)' : '/50';
+        document.getElementById('maxWaveText').innerText = config.maxWave === 999 ? ' (無盡)' : '/' + config.maxWave;
         document.getElementById('pauseBtn').innerText = '⏸️ 暫停'; 
         
-        pathCells = (mode === 'random') ? getLevelPath(Math.floor(Math.random()*10)+1) : getLevelPath(mode);
+        pathCells = config.mapPath;
         
+        // 確保非迴圈漏怪地圖終點有座標可抵達
+        if (config.lossCond === 'LEAK') {
+            let last = pathCells[pathCells.length-1];
+            let slast = pathCells[pathCells.length-2];
+            pathCells.push({x: last.x + (last.x - slast.x), y: last.y + (last.y - slast.y)});
+        }
+
         gameWorker.postMessage('start');
         updateInfoPanel(); 
     }
@@ -1014,8 +1158,8 @@
         let title = isWin ? "🎉 防守成功 🎉" : "💀 任務失敗 💀";
         let eExp = gameState.wave * 15 + Math.floor(Math.pow(gameState.wave, 1.2)), eGold = gameState.wave * 10 + Math.floor(Math.pow(gameState.wave, 1.3));
         
-        if (isWin && gameState.mode !== 'random' && gameState.mode === player.maxLevel && player.maxLevel < 10) { player.maxLevel++; }
-        if (gameState.mode === 'random' && gameState.wave > player.endlessRecord) { player.endlessRecord = gameState.wave; }
+        if (isWin && gameState.isStory && gameState.mode === player.maxLevel && player.maxLevel < 10) { player.maxLevel++; }
+        if (!gameState.isStory && gameState.maxWave === 999 && gameState.wave > player.endlessRecord) { player.endlessRecord = gameState.wave; }
 
         document.getElementById('resultTitle').innerText = title; document.getElementById('resultTitle').style.color = isWin ? "var(--success)" : "var(--danger)";
         document.getElementById('resWave').innerText = gameState.wave; document.getElementById('resExp').innerText = eExp; document.getElementById('resGold').innerText = eGold;
