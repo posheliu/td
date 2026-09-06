@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>英雄元素守塔 - 永久存檔版</title>
+    <title>英雄元素守塔 - 相剋反應紀元</title>
     <style>
         :root {
             --bg-dark: #0f172a; --panel-bg: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; --gold: #fbbf24;
         }
+        /* 嚴格禁止全選、複製、長按彈出選單，並消除點擊閃爍 */
         * {
             user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
             -webkit-touch-callout: none; box-sizing: border-box; touch-action: none;
+            -webkit-tap-highlight-color: transparent; outline: none;
         }
         html, body {
             height: 100%; margin: 0; padding: 0; background-color: var(--bg-dark); color: #fff; 
@@ -93,7 +95,7 @@
         @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     </style>
 </head>
-<body oncontextmenu="return false;">
+<body>
 
 <div id="app">
     <!-- ================= 首頁 ================= -->
@@ -106,7 +108,6 @@
             <div style="margin-top:10px; font-size:20px; font-weight:bold; color:var(--gold);">💰 局外金幣: <span id="uiGlobalGold">0</span></div>
         </div>
         <div class="menu-content" id="menuMain">
-            <!-- 無盡排行榜 -->
             <div style="background:#450a0a; border: 1px solid #dc2626; padding:10px; border-radius:8px; text-align:center;">
                 <span style="font-size:16px; font-weight:bold; color:#fca5a5;">🏆 無盡模式最高紀錄：第 <span id="uiEndlessRecord" style="font-size:22px; color:#fbbf24;">0</span> 波</span>
             </div>
@@ -114,12 +115,12 @@
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <button class="btn btn-success" style="padding: 15px; font-size: 16px;" onclick="showLevelSelect()">🗺️ 選擇關卡</button>
                 <button class="btn btn-purple" style="padding: 15px; font-size: 16px;" onclick="showGacha()">🔮 扭蛋中心</button>
-                <button class="btn btn-gold" style="padding: 15px; font-size: 16px; grid-column: span 2;" onclick="startGame('random')">🎲 隨機模式 (變化迷宮/無盡)</button>
+                <button class="btn btn-gold" style="padding: 15px; font-size: 16px; grid-column: span 2;" onclick="startGame('random')">🎲 隨機模式 (無盡挑戰)</button>
             </div>
             
             <div style="font-size:13px; color:#94a3b8; background:#0f172a; padding:10px; border-radius:8px; line-height: 1.5; margin-top:5px;">
-                ⚠️ <strong>怪物變異警告</strong>：<br>
-                無盡模式中，怪物將隨波數疊加強大抗性：<br>
+                ⚔️ <strong>相剋環(2倍傷)</strong>：💧＞🔥＞❄️＞🌪️＞⚡＞💧<br>
+                ⚠️ <strong>變異警告</strong>：波數越高，怪物將疊加強大抗性！<br>
                 [🪨硬皮] [⚡免控] [💨迅捷] [💖再生] [🛡️神盾] [👻閃避] [👑霸體] [💀泰坦]
             </div>
 
@@ -211,14 +212,12 @@
 <script>
     /* ================= 完美繼承存檔系統 ================= */
     let player = { 
-        level: 1, exp: 0, globalGold: 200, maxLevel: 1, 
-        endlessRecord: 0,
+        level: 1, exp: 0, globalGold: 200, maxLevel: 1, endlessRecord: 0,
         tech: { dmgLv: 0, spdLv: 0, moneyLv: 0 },
         unlockedCombos: [], relics: { critRate: 0, critDmg: 0, bossDmg: 0 }
     };
 
     function loadData() { 
-        // 尋找過去所有的舊紀錄並自動升級，確保玩家心血永不消失！
         const possibleKeys = ['heroTD_save_data', 'heroTD_v11', 'heroTD_v10', 'heroTD_v9', 'heroTD_v8', 'heroTD_v7', 'heroTD_v6', 'heroTD_save'];
         let loadedStr = null;
         for (let key of possibleKeys) {
@@ -226,23 +225,14 @@
             if (loadedStr) break;
         }
 
-        if(loadedStr) {
-            player = {...player, ...JSON.parse(loadedStr)}; 
-        }
-        
-        // 補齊舊版可能缺少的屬性
+        if(loadedStr) { player = {...player, ...JSON.parse(loadedStr)}; }
         if(!player.relics) player.relics = { critRate: 0, critDmg: 0, bossDmg: 0 };
         if(!player.unlockedCombos) player.unlockedCombos = [];
         if(!player.endlessRecord) player.endlessRecord = 0;
-        
         updateMenuUI(); 
     }
     
-    function saveData() { 
-        // 統一存檔命名，以後不再更改
-        localStorage.setItem('heroTD_save_data', JSON.stringify(player)); 
-    }
-
+    function saveData() { localStorage.setItem('heroTD_save_data', JSON.stringify(player)); }
     function getMaxExp() { return 100 + (player.level - 1) * 50; }
 
     function updateMenuUI() {
@@ -302,7 +292,7 @@
         'STEAM': { color: '#9ca3af', name: '蒸氣', dmg: 25, cd: 25, range: 310, isBase: false }, 
         'SLUSH': { color: '#7dd3fc', name: '碎冰', dmg: 30, cd: 40, range: 290, isBase: false }, 
         'STORM': { color: '#1d4ed8', name: '暴雨', dmg: 40, cd: 35, range: 310, isBase: false }, 
-        'CONDU': { color: '#a855f7', name: '導電', dmg: 45, cd: 45, range: 300, isBase: false }, 
+        'CONDU': { color: '#a855f7', name: '激電', dmg: 45, cd: 45, range: 300, isBase: false }, 
         'THERM': { color: '#f97316', name: '熱震', dmg: 70, cd: 55, range: 280, isBase: false }, 
         'FSTORM':{ color: '#ea580c', name: '火捲', dmg: 35, cd: 30, range: 330, isBase: false }, 
         'PLASM': { color: '#d946ef', name: '電漿', dmg: 110, cd: 60, range: 300, isBase: false },
@@ -311,7 +301,8 @@
         'TSTORM':{ color: '#84cc16', name: '雷暴', dmg: 40, cd: 20, range: 300, isBase: false }  
     };
     const BASE_KEYS = ['FIRE', 'WATER', 'WIND', 'ELEC', 'ICE'];
-    const COUNTERS = { 'WATER': 'FIRE', 'FIRE': 'WIND', 'WIND': 'ELEC', 'ELEC': 'ICE', 'ICE': 'WATER' };
+    // 全新完美相剋環
+    const COUNTERS = { 'WATER': 'FIRE', 'FIRE': 'ICE', 'ICE': 'WIND', 'WIND': 'ELEC', 'ELEC': 'WATER' };
 
     const COMBO_MAP = {
         'WATER,FIRE': 'STEAM', 'FIRE,WATER': 'STEAM', 'WATER,ICE': 'SLUSH', 'ICE,WATER': 'SLUSH',
@@ -353,7 +344,7 @@
         modal.classList.remove('hidden');
     }
 
-    /* ================= 遊戲核心引擎 ================= */
+    /* ================= Web Worker 引擎 ================= */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const GAME_W = 720, GAME_H = 1080, TILE = 120, COLS = 6, ROWS = 9;
@@ -363,7 +354,6 @@
     let draggedTower = null, selectedTower = null;
     let dragStartX = 0, dragStartY = 0, mouseX = 0, mouseY = 0;
 
-    // Web Worker 背景守護
     const workerCode = `
         let timer = null;
         self.onmessage = function(e) {
@@ -406,7 +396,7 @@
             if (gameState.frame % spInt === 0) enemies.push(new Enemy(gameState.wave, false));
         }
         
-        // 【關鍵修復】: 中央處理怪物死亡並結算金錢與跳錢特效
+        // 怪物死亡判定與金錢掉落
         enemies = enemies.filter(e => { 
             e.update(); 
             if (e.hp <= 0) {
@@ -486,12 +476,16 @@
         document.getElementById('uiUpgSummonCost').innerText = 50 + gameState.summonLv * 20;
     }
 
-    /* ================= 遊戲物件 ================= */
+    /* ================= 變異怪獸系統 ================= */
     class Enemy {
         constructor(wave, isBoss = false) {
             this.pathIndex = 0; this.isBoss = isBoss;
             this.x = pathCells[0].x * TILE + TILE/2; this.y = pathCells[0].y * TILE + TILE/2;
             this.slowTimer = 0; this.slowRatio = 1; this.stunTimer = 0; this.burnTimer = 0; this.burnDmg = 0; this.armorBreakTimer = 0;
+            this.wetTimer = 0; // 潮濕狀態 (雷系反應)
+
+            // 全怪獸皆有屬性
+            this.elementType = BASE_KEYS[Math.floor(Math.random() * BASE_KEYS.length)];
             
             this.traits = [];
             if(wave >= 11) this.traits.push('HARD_SKIN');
@@ -507,18 +501,18 @@
             let diffM = (gameState.mode === 'random') ? 5 : gameState.mode; 
             if (isBoss) {
                 this.bossType = BASE_KEYS[((wave / 10) - 1) % 5];
+                this.elementType = this.bossType;
                 this.maxHp = 1000 + wave * 400 * (1 + diffM*0.1) + Math.pow(wave, 2.2) * 15;
                 this.hp = this.maxHp;
                 this.baseSpeed = 0.9 + (wave * 0.015);
                 this.radius = 45; this.reward = 100;
-                this.color = ELEMENTS[this.bossType].color;
             } else {
                 this.maxHp = 60 + wave * 45 * (1 + diffM*0.1) + Math.pow(wave, 1.7) * 5;
                 this.hp = this.maxHp;
                 this.baseSpeed = 1.8 + (wave * 0.025);
                 this.radius = 24; this.reward = 5 + Math.floor(wave / 5);
-                this.color = '#a855f7';
             }
+            this.color = ELEMENTS[this.elementType].color;
             if(this.traits.includes('SWIFT')) this.baseSpeed *= 1.4;
         }
         
@@ -559,11 +553,15 @@
             }
 
             if (this.armorBreakTimer > 0) this.armorBreakTimer--;
+            if (this.wetTimer > 0) {
+                this.wetTimer--;
+                if(gameState.frame % 20 === 0) visuals.push({t:'text', text:'💧', x:this.x, y:this.y-15, life:10, color:'#3b82f6'});
+            }
             
             let nextIndex = (this.pathIndex + 1) % pathCells.length;
             let tg = pathCells[nextIndex];
             
-            if (this.stunTimer > 0) { this.stunTimer--; return; }
+            if (this.stunTimer > 0) { this.stunTimer--; return this.hp > 0; }
 
             let spd = this.slowTimer > 0 ? this.baseSpeed * this.slowRatio : this.baseSpeed;
             if(this.slowTimer > 0) this.slowTimer--;
@@ -571,9 +569,10 @@
             let tx = tg.x * TILE + TILE/2, ty = tg.y * TILE + TILE/2;
             let dx = tx - this.x, dy = ty - this.y, dist = Math.hypot(dx, dy);
 
-            if (dist > TILE * 2) { this.x = tx; this.y = ty; this.pathIndex = nextIndex; return; }
+            if (dist > TILE * 2) { this.x = tx; this.y = ty; this.pathIndex = nextIndex; return this.hp > 0; }
             if (dist < spd) { this.x = tx; this.y = ty; this.pathIndex = nextIndex; } 
             else { this.x += (dx/dist)*spd; this.y += (dy/dist)*spd; }
+            return this.hp > 0;
         }
         
         draw() {
@@ -583,28 +582,26 @@
             if(this.armorBreakTimer > 0) { ctx.strokeStyle = '#f97316'; ctx.lineWidth = 5; ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]);}
             else if(this.isBoss) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.stroke(); }
             
-            if(this.traits.length > 0) {
-                let icons = "";
-                if(this.traits.includes('TITAN')) icons = "💀";
-                else {
-                    if(this.traits.includes('HARD_SKIN')) icons += "🪨";
-                    if(this.traits.includes('CC_RESIST')) icons += "⚡";
-                    if(this.traits.includes('SWIFT')) icons += "💨";
-                    if(this.traits.includes('REGEN')) icons += "💖";
-                    if(this.traits.includes('SUPER_SHIELD') || this.traits.includes('SHIELD')) icons += "🛡️";
-                    if(this.traits.includes('EVASION')) icons += "👻";
-                    if(this.traits.includes('UNSTOPPABLE')) icons += "👑";
-                }
-                ctx.fillStyle = 'white'; ctx.font = '16px Arial'; ctx.textAlign='center'; ctx.fillText(icons, this.x, this.y - this.radius - 32);
+            let elIcon = '';
+            if(this.elementType==='FIRE') elIcon='🔥'; if(this.elementType==='WATER') elIcon='💧';
+            if(this.elementType==='WIND') elIcon='🌪️'; if(this.elementType==='ELEC') elIcon='⚡'; if(this.elementType==='ICE') elIcon='❄️';
+
+            let icons = elIcon + " ";
+            if(this.traits.includes('TITAN')) icons += "💀";
+            else {
+                if(this.traits.includes('HARD_SKIN')) icons += "🪨";
+                if(this.traits.includes('CC_RESIST')) icons += "⚡";
+                if(this.traits.includes('SWIFT')) icons += "💨";
+                if(this.traits.includes('REGEN')) icons += "💖";
+                if(this.traits.includes('SUPER_SHIELD') || this.traits.includes('SHIELD')) icons += "🛡️";
+                if(this.traits.includes('EVASION')) icons += "👻";
+                if(this.traits.includes('UNSTOPPABLE')) icons += "👑";
             }
+            ctx.fillStyle = 'white'; ctx.font = '18px Arial'; ctx.textAlign='center'; ctx.fillText(icons, this.x, this.y - this.radius - 32);
 
             let bw = this.isBoss ? 90 : 60;
             ctx.fillStyle = '#1e293b'; ctx.fillRect(this.x-bw/2, this.y-this.radius-20, bw, 10);
             ctx.fillStyle = this.isBoss ? '#ef4444' : '#22c55e'; ctx.fillRect(this.x-bw/2, this.y-this.radius-20, bw*(this.hp/this.maxHp), 10);
-            if(this.isBoss) { 
-                ctx.fillStyle = '#fff'; ctx.font = 'bold 26px Arial'; ctx.textAlign='center'; 
-                ctx.shadowColor='black'; ctx.shadowBlur=4; ctx.fillText("BOSS", this.x, this.y + 10); ctx.shadowBlur=0;
-            }
         }
     }
 
@@ -681,13 +678,18 @@
                 let dmgMulti = 1.0 * critMult;
                 if (this.target.isBoss) dmgMulti *= (1.0 + player.relics.bossDmg);
 
-                if (this.target.isBoss && COUNTERS[this.type] === this.target.bossType) {
+                // 全新相剋環計算
+                if (COUNTERS[this.type] === this.target.elementType) {
                     dmgMulti *= 2.0; visuals.push({ t:'text', text:'克制!', x: this.target.x, y: this.target.y - 45, life: 30, color: '#fbbf24' });
                 }
+                
                 if (this.target.armorBreakTimer > 0) dmgMulti *= 1.5;
                 let fD = this.damage * dmgMulti;
 
                 if(isCrit) visuals.push({ t:'text', text:'💥CRIT', x: this.target.x, y: this.target.y, life: 25, color: '#f87171' });
+
+                // 水系附加潮濕
+                if (['WATER', 'SLUSH', 'STORM', 'STEAM'].includes(this.type)) { this.target.wetTimer = 180; }
 
                 switch(this.type) {
                     case 'FIRE': this.target.applyDamage(fD); break;
@@ -703,6 +705,35 @@
                         } break;
                     case 'ICE':
                         this.target.applyDamage(fD); this.target.applyCC('SLOW', 45 + this.star*15, Math.max(0.15, 0.6 - (this.star*0.1))); break;
+                    
+                    case 'THERM': 
+                        // 熱衝擊：對硬皮/神盾/超神盾/泰坦 額外2倍傷害
+                        if (this.target.traits.includes('HARD_SKIN') || this.target.traits.includes('SHIELD') || this.target.traits.includes('SUPER_SHIELD') || this.target.traits.includes('TITAN')) {
+                            fD *= 2.0; visuals.push({ t:'text', text:'熱衝擊!', x: this.target.x, y: this.target.y - 25, life: 30, color: '#f97316' });
+                        }
+                        this.target.applyDamage(fD); let rth = 180 + this.star*25;
+                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rth, life:20, color:'249,115,22' });
+                        this.applyAoe(rth, e => { e.applyDamage(fD * 0.8); e.armorBreakTimer = 180; }); break;
+                    
+                    case 'SUPER': 
+                        // 超導：微幅定身、破甲降雙防
+                        this.target.applyDamage(fD); let rsu = 150 + this.star*20;
+                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rsu, life:20, color:'192,132,252' });
+                        this.applyAoe(rsu, e => { e.armorBreakTimer = 180; e.applyCC('STUN', 15, null); e.applyDamage(fD*0.6); }); break;
+                    
+                    case 'CONDU': 
+                        // 激電擴散：若目標潮濕，傷害直接加倍，並感電連鎖
+                        let wetMult = this.target.wetTimer > 0 ? 2.0 : 1.0;
+                        if(wetMult > 1) visuals.push({ t:'text', text:'激電擴散!', x: this.target.x, y: this.target.y - 25, life: 30, color: '#a855f7' });
+                        this.target.applyDamage(fD * wetMult); 
+                        
+                        let cc = enemies.filter(e => e!==this.target && Math.hypot(e.x-this.target.x, e.y-this.target.y)<280);
+                        for(let i=0; i<Math.min(cc.length, 2+this.star); i++) {
+                            let cWM = cc[i].wetTimer > 0 ? 2.0 : 1.0;
+                            cc[i].applyDamage(fD * 0.7 * cWM); 
+                            visuals.push({ t:'bolt', x1:this.target.x, y1:this.target.y, x2:cc[i].x, y2:cc[i].y, life:10, color:'168,85,247' });
+                        } break;
+
                     case 'STEAM': 
                         this.target.applyDamage(fD); this.target.armorBreakTimer = 180; this.target.burnTimer = 180; this.target.burnDmg = fD * 0.05;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:120, life:20, color:'156,163,175' }); break;
@@ -714,17 +745,6 @@
                         this.target.applyDamage(fD); let rt = 150 + this.star*20;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rt, life:15, color:'29,78,216' });
                         this.applyAoe(rt, e => { e.knockback(50 + this.star*15); }); break;
-                    case 'CONDU': 
-                        this.target.applyDamage(fD); this.target.applyCC('STUN', 30, null);
-                        let cc = enemies.filter(e => e!==this.target && Math.hypot(e.x-this.target.x, e.y-this.target.y)<280);
-                        for(let i=0; i<Math.min(cc.length, 2+this.star); i++) {
-                            cc[i].applyDamage(fD*0.7); cc[i].applyCC('STUN', 30, null); 
-                            visuals.push({ t:'bolt', x1:this.target.x, y1:this.target.y, x2:cc[i].x, y2:cc[i].y, life:10, color:'168,85,247' });
-                        } break;
-                    case 'THERM': 
-                        this.target.applyDamage(fD); let rth = 180 + this.star*25;
-                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rth, life:20, color:'249,115,22' });
-                        this.applyAoe(rth, e => { e.applyDamage(fD * 0.8); e.armorBreakTimer = 180; }); break;
                     case 'FSTORM': 
                         this.target.applyDamage(fD); let rf = 150 + this.star*20;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rf, life:25, color:'234,88,12' });
@@ -736,10 +756,6 @@
                         this.target.applyDamage(fD); let rb = 200 + this.star*30;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rb, life:25, color:'224,242,254' });
                         this.applyAoe(rb, e => { e.applyCC('STUN', 45, null); e.applyDamage(fD*0.4); }); break;
-                    case 'SUPER': 
-                        this.target.applyDamage(fD); let rsu = 180 + this.star*20;
-                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rsu, life:20, color:'192,132,252' });
-                        this.applyAoe(rsu, e => { e.armorBreakTimer = 120; e.applyCC('STUN', 20, null); e.applyDamage(fD*0.6); }); break;
                     case 'TSTORM': 
                         this.target.applyDamage(fD); this.target.applyCC('STUN', 15, null);
                         visuals.push({ t:'bolt', x1:this.x, y1:this.y, x2:this.target.x, y2:this.target.y, life:5, color:'132,204,22' }); break;
@@ -761,7 +777,7 @@
         });
     }
 
-    /* ================= 介面顯示 ================= */
+    /* ================= 觸控介面 ================= */
     function updateInfoPanel() {
         const info = document.getElementById('infoPanel');
         if (selectedTower) {
@@ -777,12 +793,12 @@
                 case 'STEAM': sk = `🌫️蒸氣: 燙傷+【破甲】(受傷1.5倍)`; break;
                 case 'SLUSH': sk = `🧊碎冰: 冰沼大範圍極度減速`; break;
                 case 'STORM': sk = `🌊暴雨: 將敵人向後【擊退】`; break;
-                case 'CONDU': sk = `🌩️導電: 範圍感電，短暫【暈眩】`; break;
-                case 'THERM': sk = `🌋熱震: 毀滅爆裂，附帶【破甲】`; break;
+                case 'CONDU': sk = `🌩️激電擴散: 範圍連鎖，目標潮濕傷害加倍`; break;
+                case 'THERM': sk = `🌋熱衝擊: 破甲爆裂。對硬皮/護盾造成2倍破甲傷害`; break;
                 case 'FSTORM': sk = `🌪️火捲: 火風暴【持續燃燒】`; break;
                 case 'PLASM': sk = `💥電漿: 【250%超爆發】單體傷+破甲`; break;
                 case 'BLIZZ': sk = `🌨️風雪: 大範圍【完全凍結】`; break;
-                case 'SUPER': sk = `🔮超導: 領域敵人同時【破甲】與【暈眩】`; break;
+                case 'SUPER': sk = `🔮超導: 領域敵人【破防降抗】，附帶微幅定身`; break;
                 case 'TSTORM': sk = `⚡雷暴: 【極限攻速】並附帶震盪暈眩`; break;
             }
             info.innerHTML = `
@@ -818,7 +834,7 @@
                 if (rand < s3) star = 3; else if (rand < s3 + s2) star = 2;
                 let t = new Tower(empty.x, empty.y, true); t.star = star; towers.push(t);
                 updateInfoPanel();
-            } else alert("備戰區已滿！請先合成或移至場上。");
+            }
         }
     }
     function sellSelected() { if(selectedTower){ gameState.money += 15*Math.pow(2, selectedTower.star-1) + (selectedTower.upgradeLv*10); towers = towers.filter(t=>t!==selectedTower); selectedTower=null; updateAuras(); updateInfoPanel(); } }
@@ -873,7 +889,7 @@
                             if (player.unlockedCombos.includes(COMBO_MAP[comboKey])) {
                                 targetT.type = COMBO_MAP[comboKey]; targetT.baseStats = ELEMENTS[targetT.type];
                             } else {
-                                alert("尚未解鎖該衍生配方！請前往扭蛋中心抽取。");
+                                // 【無干擾設計】：直接交換，不跳出警告視窗
                                 let tx = targetT.gridX, ty = targetT.gridY, tb = targetT.isBench;
                                 targetT.gridX = draggedTower.gridX; targetT.gridY = draggedTower.gridY; targetT.isBench = draggedTower.isBench;
                                 draggedTower.gridX = tx; draggedTower.gridY = ty; draggedTower.isBench = tb;
@@ -923,8 +939,7 @@
         else if(lvl===3) pts=[{x:0,y:0},{x:0,y:6},{x:2,y:6},{x:2,y:1},{x:3,y:1},{x:3,y:6},{x:5,y:6},{x:5,y:0}];
         else if(lvl===4) pts=[{x:0,y:0},{x:5,y:0},{x:5,y:6},{x:0,y:6},{x:0,y:2},{x:3,y:2},{x:3,y:4},{x:2,y:4}];
         else if(lvl===5) pts=[{x:0,y:6},{x:0,y:0},{x:2,y:0},{x:2,y:4},{x:3,y:4},{x:3,y:0},{x:5,y:0},{x:5,y:6}];
-        // 【修復】關卡 6: 梳子型地圖，留出大量建塔空間
-        else if(lvl===6) pts=[{x:0,y:0},{x:5,y:0},{x:5,y:2},{x:1,y:2},{x:1,y:4},{x:5,y:4},{x:5,y:6},{x:0,y:6}];
+        else if(lvl===6) pts=[{x:0,y:0},{x:4,y:0},{x:4,y:2},{x:1,y:2},{x:1,y:4},{x:4,y:4},{x:4,y:6},{x:0,y:6}];
         else if(lvl===7) pts=[{x:0,y:0},{x:2,y:0},{x:2,y:2},{x:5,y:2},{x:5,y:4},{x:2,y:4},{x:2,y:6},{x:5,y:6}];
         else if(lvl===8) pts=[{x:0,y:6},{x:5,y:6},{x:5,y:4},{x:1,y:4},{x:1,y:2},{x:5,y:2},{x:5,y:0},{x:0,y:0}];
         else if(lvl===9) pts=[{x:2,y:0},{x:2,y:6},{x:3,y:6},{x:3,y:0}];
