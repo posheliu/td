@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>英雄元素守塔 - 扭蛋與遺物紀元</title>
+    <title>英雄元素守塔 - 無盡變異紀元</title>
     <style>
         :root {
             --bg-dark: #0f172a; --panel-bg: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; --gold: #fbbf24;
@@ -85,7 +85,6 @@
         .controls-grid { flex-shrink: 0; display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 8px; height: 50px; }
         .controls-grid button { padding: 4px; font-size: 13px; line-height: 1.3; }
 
-        /* 扭蛋結果動畫 */
         #gachaModal {
             position: absolute; inset: 0; background: rgba(0,0,0,0.85); z-index: 50;
             display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 20px; text-align: center;
@@ -107,11 +106,23 @@
             <div style="margin-top:10px; font-size:20px; font-weight:bold; color:var(--gold);">💰 局外金幣: <span id="uiGlobalGold">0</span></div>
         </div>
         <div class="menu-content" id="menuMain">
+            <!-- 無盡排行榜 -->
+            <div style="background:#450a0a; border: 1px solid #dc2626; padding:10px; border-radius:8px; text-align:center;">
+                <span style="font-size:16px; font-weight:bold; color:#fca5a5;">🏆 無盡模式最高紀錄：第 <span id="uiEndlessRecord" style="font-size:22px; color:#fbbf24;">0</span> 波</span>
+            </div>
+
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <button class="btn btn-success" style="padding: 15px; font-size: 16px;" onclick="showLevelSelect()">🗺️ 選擇關卡</button>
                 <button class="btn btn-purple" style="padding: 15px; font-size: 16px;" onclick="showGacha()">🔮 扭蛋中心</button>
                 <button class="btn btn-gold" style="padding: 15px; font-size: 16px; grid-column: span 2;" onclick="startGame('random')">🎲 隨機模式 (變化迷宮/無盡)</button>
             </div>
+            
+            <div style="font-size:13px; color:#94a3b8; background:#0f172a; padding:10px; border-radius:8px; line-height: 1.5; margin-top:5px;">
+                ⚠️ <strong>怪物變異警告</strong>：<br>
+                無盡模式中，怪物將隨波數疊加強大抗性：<br>
+                [🪨硬皮] [⚡免控] [💨迅捷] [💖再生] [🛡️神盾] [👻閃避] [👑霸體] [💀泰坦]
+            </div>
+
             <hr style="border:1px solid #334155; width:100%; margin: 2px 0;">
             <h3 style="margin:0;">🛠️ 科技樹升級</h3>
             <button class="btn" onclick="upgradeTech('dmg')" id="btnTechDmg">⚔️ 傷害 +<span id="techDmgVal">0</span>% | $<span id="costDmg">0</span></button>
@@ -119,14 +130,12 @@
             <button class="btn" onclick="upgradeTech('money')" id="btnTechMoney">💰 初始 +$<span id="techMoneyVal">0</span> | $<span id="costMoney">0</span></button>
         </div>
         
-        <!-- 關卡選擇 -->
         <div class="menu-content hidden" id="menuLevel">
             <h2 style="text-align:center; margin:0;">🗺️ 選擇關卡</h2>
             <div class="level-grid" id="levelGridUI"></div>
             <button class="btn btn-danger" style="margin-top:20px; padding:12px;" onclick="hideSubMenu()">🔙 返回</button>
         </div>
 
-        <!-- 扭蛋中心 -->
         <div class="menu-content hidden" id="menuGacha">
             <h2 style="text-align:center; margin:0; color:#c084fc;">🔮 煉金扭蛋</h2>
             <p style="font-size:13px; color:#94a3b8; text-align:center;">抽取【衍生塔配方】與【永久遺物】</p>
@@ -145,7 +154,7 @@
         </div>
     </div>
 
-    <!-- 扭蛋動畫遮罩 -->
+    <!-- 扭蛋動畫 -->
     <div id="gachaModal" class="hidden">
         <div class="gacha-text" id="gachaResultText"></div>
         <button class="btn btn-primary" style="padding:10px 30px;" onclick="document.getElementById('gachaModal').classList.add('hidden')">確定</button>
@@ -203,22 +212,20 @@
     /* ================= 存檔與 UI ================= */
     let player = { 
         level: 1, exp: 0, globalGold: 200, maxLevel: 1, 
+        endlessRecord: 0,
         tech: { dmgLv: 0, spdLv: 0, moneyLv: 0 },
-        unlockedCombos: [], // 預設全部鎖定
-        relics: { critRate: 0, critDmg: 0, bossDmg: 0 }
+        unlockedCombos: [], relics: { critRate: 0, critDmg: 0, bossDmg: 0 }
     };
 
     function loadData() { 
-        const s = localStorage.getItem('heroTD_v10'); 
+        const s = localStorage.getItem('heroTD_v11'); 
         if(s) player = {...player, ...JSON.parse(s)}; 
-        
-        // 確保遺物物件存在(相容舊存檔)
         if(!player.relics) player.relics = { critRate: 0, critDmg: 0, bossDmg: 0 };
         if(!player.unlockedCombos) player.unlockedCombos = [];
-        
+        if(!player.endlessRecord) player.endlessRecord = 0;
         updateMenuUI(); 
     }
-    function saveData() { localStorage.setItem('heroTD_v10', JSON.stringify(player)); }
+    function saveData() { localStorage.setItem('heroTD_v11', JSON.stringify(player)); }
     function getMaxExp() { return 100 + (player.level - 1) * 50; }
 
     function updateMenuUI() {
@@ -228,6 +235,7 @@
         document.getElementById('uiMaxExp').innerText = getMaxExp();
         document.getElementById('uiExpBar').style.width = Math.min(100, (player.exp / getMaxExp()) * 100) + '%';
         document.getElementById('uiGlobalGold').innerText = player.globalGold;
+        document.getElementById('uiEndlessRecord').innerText = player.endlessRecord;
 
         const cDmg = 50 + player.tech.dmgLv * 30, cSpd = 50 + player.tech.spdLv * 40, cMon = 100 + player.tech.moneyLv * 50;
         document.getElementById('techDmgVal').innerText = player.tech.dmgLv * 5;
@@ -237,7 +245,6 @@
         document.getElementById('techMoneyVal').innerText = player.tech.moneyLv * 20;
         document.getElementById('costMoney').innerText = cMon; document.getElementById('btnTechMoney').disabled = player.globalGold < cMon;
 
-        // 關卡網格
         let grid = document.getElementById('levelGridUI'); grid.innerHTML = '';
         for(let i=1; i<=10; i++) {
             let btn = document.createElement('button'); btn.className = 'btn lvl-btn';
@@ -246,7 +253,6 @@
             grid.appendChild(btn);
         }
 
-        // 扭蛋遺物顯示
         document.getElementById('uiRelicCritR').innerText = Math.floor(player.relics.critRate * 100);
         document.getElementById('uiRelicCritD').innerText = 150 + Math.floor(player.relics.critDmg * 100);
         document.getElementById('uiRelicBoss').innerText = Math.floor(player.relics.bossDmg * 100);
@@ -268,7 +274,7 @@
         saveData(); updateMenuUI();
     }
 
-    /* ================= 煉金與扭蛋系統 ================= */
+    /* ================= 煉金系統 ================= */
     const ELEMENTS = {
         'FIRE':  { color: '#ef4444', name: '火', dmg: 35, cd: 45, range: 300, isBase: true },
         'WATER': { color: '#3b82f6', name: '水', dmg: 20, cd: 30, range: 280, isBase: true },
@@ -297,8 +303,6 @@
         'FIRE,ELEC': 'PLASM', 'ELEC,FIRE': 'PLASM', 'ICE,WIND': 'BLIZZ', 'WIND,ICE': 'BLIZZ',
         'ICE,ELEC': 'SUPER', 'ELEC,ICE': 'SUPER', 'WIND,ELEC': 'TSTORM', 'ELEC,WIND': 'TSTORM'
     };
-    
-    // 取得不重複的衍生塔陣列
     const DERIVED_KEYS = Object.keys(COMBO_MAP).map(k => COMBO_MAP[k]).filter((v, i, a) => a.indexOf(v) === i);
 
     function drawGacha() {
@@ -307,17 +311,14 @@
         
         let lockedTowers = DERIVED_KEYS.filter(k => !player.unlockedCombos.includes(k));
         let roll = Math.random();
-        
         let modal = document.getElementById('gachaModal');
         let resText = document.getElementById('gachaResultText');
         
-        // 40% 機率抽塔配方 (若還有未解鎖的)
         if (roll < 0.4 && lockedTowers.length > 0) {
             let t = lockedTowers[Math.floor(Math.random() * lockedTowers.length)];
             player.unlockedCombos.push(t);
             resText.innerHTML = `🎉 獲得新配方！<br><br><span style="color:${ELEMENTS[t].color}; font-size:32px;">${ELEMENTS[t].name}塔</span><br><br><span style="font-size:16px; color:#cbd5e1;">現在可以在場上合成了</span>`;
         } else {
-            // 抽遺物
             let r = Math.random();
             if(r < 0.33) {
                 if (player.relics.critRate >= 1.0) { player.globalGold += 50; return alert("暴擊率已達上限，退還金幣！"); }
@@ -331,12 +332,11 @@
                 resText.innerHTML = `✨ 獲得遺物加成<br><br><span style="color:#f87171;">對 BOSS 傷害 +10%</span>`;
             }
         }
-        
         saveData(); updateMenuUI();
         modal.classList.remove('hidden');
     }
 
-    /* ================= Web Worker 背景遊戲引擎 ================= */
+    /* ================= Web Worker 引擎 ================= */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const GAME_W = 720, GAME_H = 1080, TILE = 120, COLS = 6, ROWS = 9;
@@ -346,13 +346,12 @@
     let draggedTower = null, selectedTower = null;
     let dragStartX = 0, dragStartY = 0, mouseX = 0, mouseY = 0;
 
-    // 建立 Web Worker (確保背景網頁切換時，時間不會停止)
     const workerCode = `
         let timer = null;
         self.onmessage = function(e) {
             if (e.data === 'start') {
                 if(timer) clearInterval(timer);
-                timer = setInterval(() => self.postMessage('tick'), 16); // ~60fps
+                timer = setInterval(() => self.postMessage('tick'), 16); 
             } else if (e.data === 'stop') {
                 clearInterval(timer);
             }
@@ -363,15 +362,9 @@
     
     gameWorker.onmessage = function() {
         if (!gameState.isActive || gameState.isOver || gameState.isPaused) return;
-        
         try {
-            // 變速系統：每個畫面幀執行 N 次邏輯
-            for(let i=0; i<gameState.speed; i++) {
-                updateLogic();
-            }
-            // 繪圖只執行一次
-            drawAll();
-            fastUpdateDOM();
+            for(let i=0; i<gameState.speed; i++) updateLogic();
+            drawAll(); fastUpdateDOM();
         } catch (err) { console.error(err); }
     };
 
@@ -384,7 +377,6 @@
 
     function updateLogic() {
         gameState.frame++;
-        
         if (gameState.frame % 600 === 0 && (gameState.mode === 'random' || gameState.wave < 50)) { 
             gameState.wave++; gameState.bossSpawned = false;
         }
@@ -392,7 +384,7 @@
         if (gameState.wave % 10 === 0) {
             if (!gameState.bossSpawned) { enemies.push(new Enemy(gameState.wave, true)); gameState.bossSpawned = true; }
         } else {
-            let spInt = Math.max(30, 150 - gameState.wave * 3);
+            let spInt = Math.max(25, 120 - gameState.wave * 2);
             if (gameState.frame % spInt === 0) enemies.push(new Enemy(gameState.wave, false));
         }
         
@@ -405,27 +397,25 @@
         towers.forEach(t => { if(t !== draggedTower) t.update(); });
         bullets = bullets.filter(b => b.update());
         visuals = visuals.filter(v => { v.life--; return v.life>0; });
-        
-        // 觸發全域光環
         updateAuras();
     }
 
     function drawAll() {
         ctx.clearRect(0, 0, GAME_W, GAME_H); 
-        
-        // 畫網格
         ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, GAME_W, GAME_H);
         ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2;
         for(let i=0; i<=GAME_W; i+=TILE) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 7*TILE); ctx.stroke(); }
         for(let j=0; j<=7*TILE; j+=TILE) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(GAME_W, j); ctx.stroke(); }
+        
         ctx.fillStyle = '#334155'; for(let c of pathCells) ctx.fillRect(c.x*TILE, c.y*TILE, TILE, TILE);
+        
         ctx.fillStyle = '#0b1120'; ctx.fillRect(0, 7*TILE, GAME_W, TILE);
         ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
         ctx.fillText("⬇️ 備戰區 (僅1排共6格) ⬇️", GAME_W/2, 7*TILE + TILE/2);
+        
         ctx.strokeStyle = '#334155'; ctx.lineWidth = 4;
         for(let x=0; x<COLS; x++) ctx.strokeRect(x*TILE, 8*TILE, TILE, TILE);
 
-        // 畫範圍圈
         if (selectedTower && !draggedTower) {
             ctx.beginPath(); ctx.arc(selectedTower.x, selectedTower.y, selectedTower.baseStats.range, 0, Math.PI*2);
             ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth=2; ctx.stroke();
@@ -469,22 +459,24 @@
         document.getElementById('uiUpgSummonCost').innerText = 50 + gameState.summonLv * 20;
     }
 
-    /* ================= 遊戲物件 ================= */
+    /* ================= 變異怪獸系統 ================= */
     class Enemy {
         constructor(wave, isBoss = false) {
             this.pathIndex = 0; this.isBoss = isBoss;
             this.x = pathCells[0].x * TILE + TILE/2; this.y = pathCells[0].y * TILE + TILE/2;
+            this.slowTimer = 0; this.slowRatio = 1; this.stunTimer = 0; this.burnTimer = 0; this.burnDmg = 0; this.armorBreakTimer = 0;
             
-            // 狀態異常
-            this.slowTimer = 0; this.slowRatio = 1;
-            this.stunTimer = 0; this.burnTimer = 0; this.burnDmg = 0; this.armorBreakTimer = 0;
-            
-            // 怪物抗性變異 (Traits)
+            // 多重變異系統
             this.traits = [];
             if(wave >= 11) this.traits.push('HARD_SKIN');
             if(wave >= 21) this.traits.push('CC_RESIST');
-            if(wave >= 31) this.traits.push('REGEN');
-            if(wave >= 41) this.traits.push('SHIELD');
+            if(wave >= 31) this.traits.push('SWIFT');
+            if(wave >= 41) this.traits.push('REGEN');
+            if(wave >= 51) this.traits.push('SHIELD');
+            if(wave >= 61) this.traits.push('EVASION');
+            if(wave >= 71) this.traits.push('UNSTOPPABLE');
+            if(wave >= 81) this.traits.push('SUPER_SHIELD');
+            if(wave >= 100) this.traits.push('TITAN');
 
             let diffM = (gameState.mode === 'random') ? 5 : gameState.mode; 
             if (isBoss) {
@@ -492,32 +484,36 @@
                 this.maxHp = 1000 + wave * 400 * (1 + diffM*0.1) + Math.pow(wave, 2.2) * 15;
                 this.hp = this.maxHp;
                 this.baseSpeed = 0.9 + (wave * 0.015);
-                this.radius = 45; this.reward = 100;
+                this.radius = 50; this.reward = 100;
                 this.color = ELEMENTS[this.bossType].color;
             } else {
                 this.maxHp = 60 + wave * 45 * (1 + diffM*0.1) + Math.pow(wave, 1.7) * 5;
                 this.hp = this.maxHp;
                 this.baseSpeed = 1.8 + (wave * 0.025);
-                this.radius = 24; this.reward = 5 + Math.floor(wave / 5);
+                this.radius = 30; this.reward = 5 + Math.floor(wave / 5);
                 this.color = '#a855f7';
             }
+            if(this.traits.includes('SWIFT')) this.baseSpeed *= 1.4;
         }
         
         applyDamage(dmg) {
-            // 防禦抗性計算
-            if(this.traits.includes('SHIELD')) dmg *= 0.5;
-            else if(this.traits.includes('HARD_SKIN')) dmg *= 0.7;
-            this.hp -= dmg;
+            let dr = 1.0;
+            if(this.traits.includes('TITAN')) dr *= 0.1;
+            else if(this.traits.includes('SUPER_SHIELD')) dr *= 0.25;
+            else if(this.traits.includes('SHIELD')) dr *= 0.5;
+            if(this.traits.includes('HARD_SKIN')) dr *= 0.7;
+            this.hp -= dmg * dr;
         }
 
         applyCC(type, duration, val) {
-            // 控制抗性計算
+            if(this.traits.includes('UNSTOPPABLE') && type === 'STUN') return;
             if(this.traits.includes('CC_RESIST')) duration = Math.floor(duration / 2);
             if(type === 'SLOW') { this.slowTimer = duration; this.slowRatio = val; }
             if(type === 'STUN') { this.stunTimer = duration; }
         }
 
         knockback(amount) {
+            if(this.traits.includes('UNSTOPPABLE')) return;
             if(this.traits.includes('CC_RESIST')) amount *= 0.5;
             let prevNode = pathCells[Math.max(0, this.pathIndex - 1)];
             let dx = prevNode.x * TILE + TILE/2 - this.x, dy = prevNode.y * TILE + TILE/2 - this.y;
@@ -526,13 +522,14 @@
         }
 
         update() {
-            // DOT 與回血
             if (this.burnTimer > 0) {
                 this.applyDamage(this.burnDmg); this.burnTimer--;
                 if(gameState.frame % 10 === 0) visuals.push({t:'text', text:'🔥', x:this.x, y:this.y, life:15, color:'#ef4444'});
             }
-            if (this.traits.includes('REGEN') && gameState.frame % 60 === 0) {
-                this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.02);
+            
+            let regenRate = this.traits.includes('TITAN') ? 0.05 : (this.traits.includes('REGEN') ? 0.02 : 0);
+            if (regenRate > 0 && gameState.frame % 60 === 0) {
+                this.hp = Math.min(this.maxHp, this.hp + this.maxHp * regenRate);
             }
 
             if (this.armorBreakTimer > 0) this.armorBreakTimer--;
@@ -562,25 +559,30 @@
             // 繪製抗性標籤
             if(this.traits.length > 0) {
                 let icons = "";
-                if(this.traits.includes('HARD_SKIN')) icons += "🪨";
-                if(this.traits.includes('CC_RESIST')) icons += "⚡";
-                if(this.traits.includes('REGEN')) icons += "💖";
-                if(this.traits.includes('SHIELD')) icons += "🛡️";
-                ctx.fillStyle = 'white'; ctx.font = '14px Arial'; ctx.textAlign='center';
-                ctx.fillText(icons, this.x, this.y - this.radius - 28);
+                if(this.traits.includes('TITAN')) icons = "💀";
+                else {
+                    if(this.traits.includes('HARD_SKIN')) icons += "🪨";
+                    if(this.traits.includes('CC_RESIST')) icons += "⚡";
+                    if(this.traits.includes('SWIFT')) icons += "💨";
+                    if(this.traits.includes('REGEN')) icons += "💖";
+                    if(this.traits.includes('SUPER_SHIELD') || this.traits.includes('SHIELD')) icons += "🛡️";
+                    if(this.traits.includes('EVASION')) icons += "👻";
+                    if(this.traits.includes('UNSTOPPABLE')) icons += "👑";
+                }
+                ctx.fillStyle = 'white'; ctx.font = '16px Arial'; ctx.textAlign='center'; ctx.fillText(icons, this.x, this.y - this.radius - 32);
             }
 
-            // 血條
-            let bw = this.isBoss ? 80 : 50;
-            ctx.fillStyle = '#1e293b'; ctx.fillRect(this.x-bw/2, this.y-this.radius-18, bw, 10);
-            ctx.fillStyle = this.isBoss ? '#ef4444' : '#22c55e'; ctx.fillRect(this.x-bw/2, this.y-this.radius-18, bw*(this.hp/this.maxHp), 10);
+            let bw = this.isBoss ? 90 : 60;
+            ctx.fillStyle = '#1e293b'; ctx.fillRect(this.x-bw/2, this.y-this.radius-20, bw, 10);
+            ctx.fillStyle = this.isBoss ? '#ef4444' : '#22c55e'; ctx.fillRect(this.x-bw/2, this.y-this.radius-20, bw*(this.hp/this.maxHp), 10);
             if(this.isBoss) { 
-                ctx.fillStyle = '#fff'; ctx.font = 'bold 24px Arial'; ctx.textAlign='center'; 
-                ctx.shadowColor='black'; ctx.shadowBlur=4; ctx.fillText("BOSS", this.x, this.y + 8); ctx.shadowBlur=0;
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 26px Arial'; ctx.textAlign='center'; 
+                ctx.shadowColor='black'; ctx.shadowBlur=4; ctx.fillText("BOSS", this.x, this.y + 10); ctx.shadowBlur=0;
             }
         }
     }
 
+    /* ================= 滿版方形防禦塔 ================= */
     class Tower {
         constructor(gx, gy, isBench) {
             this.gridX = gx; this.gridY = gy; this.isBench = isBench;
@@ -615,19 +617,31 @@
             }
         }
         draw(dx = this.x, dy = this.y) {
-            ctx.fillStyle = this.isBench ? '#334155' : '#1e293b'; ctx.fillRect(dx-50, dy-50, 100, 100);
-            if (this === selectedTower && !draggedTower) { ctx.strokeStyle='#fbbf24'; ctx.lineWidth=5; ctx.strokeRect(dx-52, dy-52, 104, 104); }
-            if (this.fireBuff > 1 && !this.isBench) { ctx.beginPath(); ctx.arc(dx, dy, 48, 0, Math.PI*2); ctx.fillStyle='rgba(239, 68, 68, 0.3)'; ctx.fill(); }
+            // 方形底座 (110x110)
+            let s = TILE - 10;
+            let rx = dx - s/2, ry = dy - s/2;
             
-            ctx.fillStyle = this.baseStats.color; ctx.beginPath(); ctx.arc(dx, dy, 32, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = this.isBench ? '#334155' : '#1e293b'; 
+            ctx.fillRect(rx, ry, s, s);
             
-            ctx.fillStyle = 'white'; ctx.shadowColor = 'black'; ctx.shadowBlur = 4; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1;
-            ctx.font = 'bold 24px sans-serif'; ctx.textAlign='left'; ctx.fillText('★'+this.star, dx-45, dy-20);
-            if (this.upgradeLv>0) { ctx.fillStyle='#fbbf24'; ctx.font = '16px sans-serif'; ctx.fillText('+'+this.upgradeLv, dx+15, dy-24); }
+            if (this === selectedTower && !draggedTower) { 
+                ctx.strokeStyle='#fbbf24'; ctx.lineWidth=6; ctx.strokeRect(rx-3, ry-3, s+6, s+6); 
+            }
+            if (this.fireBuff > 1 && !this.isBench) { 
+                ctx.fillStyle='rgba(239, 68, 68, 0.3)'; ctx.fillRect(rx, ry, s, s); 
+            }
+            
+            // 方形核心
+            ctx.fillStyle = this.baseStats.color; 
+            ctx.fillRect(rx + 10, ry + 10, s - 20, s - 20);
+            
+            ctx.fillStyle = 'white'; ctx.shadowColor = 'black'; ctx.shadowBlur = 4; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
+            ctx.font = 'bold 26px sans-serif'; ctx.textAlign='left'; ctx.fillText('★'+this.star, rx + 15, ry + 35);
+            if (this.upgradeLv>0) { ctx.fillStyle='#fbbf24'; ctx.font = '18px sans-serif'; ctx.fillText('+'+this.upgradeLv, rx + s - 40, ry + 35); }
             
             ctx.fillStyle = 'white'; ctx.textAlign='center'; ctx.textBaseline='middle'; 
-            ctx.font = this.baseStats.isBase ? 'bold 22px sans-serif' : 'bold 18px sans-serif';
-            ctx.fillText(this.baseStats.name, dx, dy+8);
+            ctx.font = this.baseStats.isBase ? 'bold 26px sans-serif' : 'bold 22px sans-serif';
+            ctx.fillText(this.baseStats.name, dx, dy + 15);
             ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0; 
         }
     }
@@ -635,7 +649,7 @@
     class Bullet {
         constructor(x, y, tg, dmg, t, s) {
             this.x=x; this.y=y; this.target=tg; this.damage=dmg; this.type=t; this.star=s;
-            this.color = ELEMENTS[t].color; this.speed = 25;
+            this.color = ELEMENTS[t].color; this.speed = 28;
         }
         applyAoe(radius, effectFn) { enemies.forEach(e => { if(Math.hypot(e.x-this.target.x, e.y-this.target.y) <= radius) effectFn(e); }); }
         update() {
@@ -643,15 +657,19 @@
             let dx = this.target.x-this.x, dy = this.target.y-this.y, dist = Math.hypot(dx, dy);
             if(dist < this.speed + this.target.radius) {
                 
-                // 遺物暴擊計算
+                // 閃避判定
+                if (this.target.traits.includes('EVASION') && Math.random() < 0.2) {
+                    visuals.push({ t:'text', text:'閃避', x: this.target.x, y: this.target.y, life: 20, color: '#94a3b8' });
+                    return false;
+                }
+
                 let isCrit = Math.random() < player.relics.critRate;
                 let critMult = isCrit ? (1.5 + player.relics.critDmg) : 1.0;
-                
                 let dmgMulti = 1.0 * critMult;
                 if (this.target.isBoss) dmgMulti *= (1.0 + player.relics.bossDmg);
 
                 if (this.target.isBoss && COUNTERS[this.type] === this.target.bossType) {
-                    dmgMulti *= 2.0; visuals.push({ t:'text', text:'克制!', x: this.target.x, y: this.target.y - 40, life: 30, color: '#fbbf24' });
+                    dmgMulti *= 2.0; visuals.push({ t:'text', text:'克制!', x: this.target.x, y: this.target.y - 45, life: 30, color: '#fbbf24' });
                 }
                 if (this.target.armorBreakTimer > 0) dmgMulti *= 1.5;
                 let fD = this.damage * dmgMulti;
@@ -661,12 +679,12 @@
                 switch(this.type) {
                     case 'FIRE': this.target.applyDamage(fD); break;
                     case 'WATER': 
-                        this.target.applyDamage(fD); let rw = 100 + this.star*20;
+                        this.target.applyDamage(fD); let rw = 120 + this.star*20;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rw, life:15, color:'59,130,246' });
                         this.applyAoe(rw, e => { if(e!==this.target) e.applyDamage(fD*0.3); }); break;
                     case 'WIND': this.target.applyDamage(fD); break;
                     case 'ELEC': 
-                        this.target.applyDamage(fD); let ch = enemies.filter(e => e!==this.target && Math.hypot(e.x-this.target.x, e.y-this.target.y)<220);
+                        this.target.applyDamage(fD); let ch = enemies.filter(e => e!==this.target && Math.hypot(e.x-this.target.x, e.y-this.target.y)<250);
                         for(let i=0; i<Math.min(ch.length, 1+this.star); i++) {
                             ch[i].applyDamage(fD*0.8); visuals.push({ t:'bolt', x1:this.target.x, y1:this.target.y, x2:ch[i].x, y2:ch[i].y, life:10, color:'234,179,8' });
                         } break;
@@ -674,47 +692,45 @@
                         this.target.applyDamage(fD); this.target.applyCC('SLOW', 45 + this.star*15, Math.max(0.15, 0.6 - (this.star*0.1))); break;
                     case 'STEAM': 
                         this.target.applyDamage(fD); this.target.armorBreakTimer = 180; this.target.burnTimer = 180; this.target.burnDmg = fD * 0.05;
-                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:100, life:20, color:'156,163,175' }); break;
+                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:120, life:20, color:'156,163,175' }); break;
                     case 'SLUSH': 
-                        this.target.applyDamage(fD); let rs = 130 + this.star*25;
+                        this.target.applyDamage(fD); let rs = 150 + this.star*25;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rs, life:20, color:'125,211,252' });
                         this.applyAoe(rs, e => { e.applyCC('SLOW', 90, 0.2); }); break;
                     case 'STORM': 
-                        this.target.applyDamage(fD); let rt = 130 + this.star*20;
+                        this.target.applyDamage(fD); let rt = 150 + this.star*20;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rt, life:15, color:'29,78,216' });
-                        this.applyAoe(rt, e => { e.knockback(40 + this.star*15); }); break;
+                        this.applyAoe(rt, e => { e.knockback(50 + this.star*15); }); break;
                     case 'CONDU': 
                         this.target.applyDamage(fD); this.target.applyCC('STUN', 30, null);
-                        let cc = enemies.filter(e => e!==this.target && Math.hypot(e.x-this.target.x, e.y-this.target.y)<250);
+                        let cc = enemies.filter(e => e!==this.target && Math.hypot(e.x-this.target.x, e.y-this.target.y)<280);
                         for(let i=0; i<Math.min(cc.length, 2+this.star); i++) {
                             cc[i].applyDamage(fD*0.7); cc[i].applyCC('STUN', 30, null); 
                             visuals.push({ t:'bolt', x1:this.target.x, y1:this.target.y, x2:cc[i].x, y2:cc[i].y, life:10, color:'168,85,247' });
                         } break;
                     case 'THERM': 
-                        this.target.applyDamage(fD); let rth = 150 + this.star*25;
+                        this.target.applyDamage(fD); let rth = 180 + this.star*25;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rth, life:20, color:'249,115,22' });
                         this.applyAoe(rth, e => { e.applyDamage(fD * 0.8); e.armorBreakTimer = 180; }); break;
                     case 'FSTORM': 
-                        this.target.applyDamage(fD); let rf = 130 + this.star*20;
+                        this.target.applyDamage(fD); let rf = 150 + this.star*20;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rf, life:25, color:'234,88,12' });
                         this.applyAoe(rf, e => { e.burnTimer = 180; e.burnDmg = fD * 0.08; }); break;
                     case 'PLASM': 
                         this.target.applyDamage(fD * 2.5); this.target.armorBreakTimer = 120;
-                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:80, life:10, color:'217,70,239' }); break;
+                        visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:90, life:10, color:'217,70,239' }); break;
                     case 'BLIZZ': 
-                        this.target.applyDamage(fD); let rb = 180 + this.star*30;
+                        this.target.applyDamage(fD); let rb = 200 + this.star*30;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rb, life:25, color:'224,242,254' });
                         this.applyAoe(rb, e => { e.applyCC('STUN', 45, null); e.applyDamage(fD*0.4); }); break;
                     case 'SUPER': 
-                        this.target.applyDamage(fD); let rsu = 150 + this.star*20;
+                        this.target.applyDamage(fD); let rsu = 180 + this.star*20;
                         visuals.push({ t:'splash', x:this.target.x, y:this.target.y, r:0, maxR:rsu, life:20, color:'192,132,252' });
                         this.applyAoe(rsu, e => { e.armorBreakTimer = 120; e.applyCC('STUN', 20, null); e.applyDamage(fD*0.6); }); break;
                     case 'TSTORM': 
                         this.target.applyDamage(fD); this.target.applyCC('STUN', 15, null);
                         visuals.push({ t:'bolt', x1:this.x, y1:this.y, x2:this.target.x, y2:this.target.y, life:5, color:'132,204,22' }); break;
                 }
-                
-                if(this.target.hp <= 0) { gameState.money += this.target.reward; }
                 return false;
             }
             this.x += (dx/dist)*this.speed; this.y += (dy/dist)*this.speed; return true;
@@ -844,7 +860,6 @@
                             if (player.unlockedCombos.includes(COMBO_MAP[comboKey])) {
                                 targetT.type = COMBO_MAP[comboKey]; targetT.baseStats = ELEMENTS[targetT.type];
                             } else {
-                                // 未解鎖則視為交換
                                 alert("尚未解鎖該衍生配方！請前往扭蛋中心抽取。");
                                 let tx = targetT.gridX, ty = targetT.gridY, tb = targetT.isBench;
                                 targetT.gridX = draggedTower.gridX; targetT.gridY = draggedTower.gridY; targetT.isBench = draggedTower.isBench;
@@ -898,7 +913,7 @@
         else if(lvl===3) pts=[{x:0,y:0},{x:0,y:6},{x:2,y:6},{x:2,y:1},{x:3,y:1},{x:3,y:6},{x:5,y:6},{x:5,y:0}];
         else if(lvl===4) pts=[{x:0,y:0},{x:5,y:0},{x:5,y:6},{x:0,y:6},{x:0,y:2},{x:3,y:2},{x:3,y:4},{x:2,y:4}];
         else if(lvl===5) pts=[{x:0,y:6},{x:0,y:0},{x:2,y:0},{x:2,y:4},{x:3,y:4},{x:3,y:0},{x:5,y:0},{x:5,y:6}];
-        else if(lvl===6) pts=[{x:0,y:0},{x:5,y:0},{x:5,y:1},{x:0,y:1},{x:0,y:2},{x:5,y:2},{x:5,y:3},{x:0,y:3},{x:0,y:4},{x:5,y:4},{x:5,y:5},{x:0,y:5},{x:0,y:6},{x:5,y:6}];
+        else if(lvl===6) pts=[{x:0,y:0},{x:4,y:0},{x:4,y:2},{x:1,y:2},{x:1,y:4},{x:4,y:4},{x:4,y:6},{x:0,y:6}];
         else if(lvl===7) pts=[{x:0,y:0},{x:2,y:0},{x:2,y:2},{x:5,y:2},{x:5,y:4},{x:2,y:4},{x:2,y:6},{x:5,y:6}];
         else if(lvl===8) pts=[{x:0,y:6},{x:5,y:6},{x:5,y:4},{x:1,y:4},{x:1,y:2},{x:5,y:2},{x:5,y:0},{x:0,y:0}];
         else if(lvl===9) pts=[{x:2,y:0},{x:2,y:6},{x:3,y:6},{x:3,y:0}];
@@ -919,19 +934,22 @@
         
         pathCells = (mode === 'random') ? getLevelPath(Math.floor(Math.random()*10)+1) : getLevelPath(mode);
         
-        // 啟動 Worker
         gameWorker.postMessage('start');
         updateInfoPanel(); 
     }
 
     function endGame(isWin) {
         if (gameState.isOver) return; gameState.isOver = true; gameState.isActive = false; 
-        gameWorker.postMessage('stop'); // 停止背景執行緒
+        gameWorker.postMessage('stop'); 
         
         let title = isWin ? "🎉 防守成功 🎉" : "💀 任務失敗 💀";
         let eExp = gameState.wave * 15 + Math.floor(Math.pow(gameState.wave, 1.2)), eGold = gameState.wave * 10 + Math.floor(Math.pow(gameState.wave, 1.3));
         
         if (isWin && gameState.mode !== 'random' && gameState.mode === player.maxLevel && player.maxLevel < 10) { player.maxLevel++; }
+        
+        if (gameState.mode === 'random' && gameState.wave > player.endlessRecord) {
+            player.endlessRecord = gameState.wave;
+        }
 
         document.getElementById('resultTitle').innerText = title; document.getElementById('resultTitle').style.color = isWin ? "var(--success)" : "var(--danger)";
         document.getElementById('resWave').innerText = gameState.wave; document.getElementById('resExp').innerText = eExp; document.getElementById('resGold').innerText = eGold;
